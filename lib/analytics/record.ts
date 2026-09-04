@@ -5,6 +5,7 @@
 import { maskText } from './masking'
 import { classify } from './classify'
 import { addRequest, attachClassification } from './store'
+import { estimateCost } from './pricing'
 
 type RecordInput = {
   sessionId: string
@@ -33,6 +34,7 @@ export async function recordAndClassify(input: RecordInput): Promise<void> {
     responseMasked,
     inputTokens: input.usage?.inputTokens,
     outputTokens: input.usage?.outputTokens,
+    estimatedCost: estimateCost(input.model, input.usage?.inputTokens, input.usage?.outputTokens),
     latencyMs: input.latencyMs,
     status,
     errorMessage: input.errorMessage,
