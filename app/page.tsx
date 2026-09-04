@@ -140,6 +140,12 @@ export default function Home() {
   }, [])
 
   function switchModel(n: 1 | 2) {
+    // 生成中にモデルを切り替えると、進行中のリクエストがバックグラウンドに取り残され、
+    // 応答が届いても表示先のメッセージが既に消えているため画面に反映されない。
+    // 切り替え前に必ず中断してから messages をクリアする。
+    abortControllerRef.current?.abort()
+    setLoading(false)
+    setStreamingIndex(null)
     setSelectedModel(n)
     localStorage.setItem('selected-model', String(n))
     setMessages([])
