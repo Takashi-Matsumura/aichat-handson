@@ -1,0 +1,50 @@
+services:
+
+  # ── AI チャット アプリ ──────────────────────────────────────────────────────
+  app:
+    build: .
+    image: ted-aichat-demo:latest
+    ports:
+      - "8061:3000"
+    environment:
+      LLAMA_API_URL:         ${LLAMA_API_URL:-http://host.docker.internal:8080}
+      LLAMA_API_URL_2:       ${LLAMA_API_URL_2:-http://host.docker.internal:8081}
+      LLAMA_MODEL:           ${LLAMA_MODEL:-gemma4}
+      LLAMA_MODEL_LABEL_1:   ${LLAMA_MODEL_LABEL_1:-}
+      LLAMA_MODEL_LABEL_2:   ${LLAMA_MODEL_LABEL_2:-}
+      HTTP_PROXY:            http://172.16.1.36:8080
+      HTTPS_PROXY:           http://172.16.1.36:8080
+      NO_PROXY:              localhost,127.0.0.1,host.docker.internal
+    networks:
+      - aichat-net
+    restart: unless-stopped
+
+  # ── RAG サーバー（将来追加予定）────────────────────────────────────────────
+  # rag:
+  #   image: your-rag-server:latest
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - rag-data:/data
+  #   networks:
+  #     - aichat-net
+  #   restart: unless-stopped
+
+  # ── llama.cpp（コンテナ化する場合）────────────────────────────────────────
+  # llama:
+  #   image: ghcr.io/ggerganov/llama.cpp:server
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./models:/models
+  #   command: ["-m", "/models/gemma.gguf", "--host", "0.0.0.0"]
+  #   networks:
+  #     - aichat-net
+  #   restart: unless-stopped
+
+networks:
+  aichat-net:
+    driver: bridge
+
+# volumes:
+#   rag-data:
