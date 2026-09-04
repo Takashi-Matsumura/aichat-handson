@@ -36,6 +36,7 @@ type Message = {
   showTools?: boolean
   versions?: string[]
   displayVersionIdx?: number
+  stopped?: boolean
 }
 
 type ChatStreamPayload = {
@@ -349,7 +350,17 @@ export default function Home() {
         selectedModel,
       )
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return
+      if (err instanceof Error && err.name === 'AbortError') {
+        // 中断時点で1文字も届いていなければ、空の吹き出しを残さずメッセージごと消す
+        // （送信前の状態に戻す）。何か届いていれば、そこまでの内容を「停止しました」として残す。
+        setMessages(prev => {
+          const target = prev[targetIndex]
+          if (!target) return prev
+          if (target.content === '' && !target.thinking) return prev.slice(0, targetIndex)
+          return prev.map((m, j) => (j === targetIndex ? { ...m, stopped: true, thinkingDone: true } : m))
+        })
+        return
+      }
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
       setMessages(prev => prev.slice(0, -1))
     } finally {
@@ -371,6 +382,7 @@ export default function Home() {
       j !== index ? m : {
         ...m,
         content: '',
+        stopped: undefined,
         thinkingEnabled: useThink,
         thinkingDone: undefined,
         rawThinking: undefined,
@@ -396,7 +408,18 @@ export default function Home() {
         selectedModel,
       )
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return
+      if (err instanceof Error && err.name === 'AbortError') {
+        setMessages(prev => prev.map((m, j) => {
+          if (j !== index) return m
+          // 中断時点で1文字も届いていなければ、再生成前の回答にそのまま戻す（何もなかったことにする）
+          if (m.content === '' && !m.thinking) {
+            return { ...m, content: prevVersions[prevVersions.length - 1], versions: msg.versions, displayVersionIdx: undefined }
+          }
+          // 何か届いていれば、そこまでの内容を「停止しました」として残す
+          return { ...m, stopped: true, thinkingDone: true }
+        }))
+        return
+      }
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
       setMessages(prev => prev.map((m, j) =>
         j !== index ? m : { ...m, content: prevVersions[prevVersions.length - 1], versions: msg.versions, displayVersionIdx: undefined }
@@ -707,22 +730,33 @@ export default function Home() {
                   >
                     {msg.content === '' && msg.role === 'assistant' ? (
                       <div className="flex flex-col gap-1.5">
-                        <span className="flex gap-1 py-0.5">
-                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
-                        </span>
-                        {i === streamingIndex && elapsedSec >= 8 && (
-                          <div className="not-prose flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                            <span>応答に時間がかかっています…（{elapsedSec}秒経過）</span>
-                            <button
-                              type="button"
-                              onClick={handleStop}
-                              className="underline decoration-dotted hover:text-amber-700 dark:hover:text-amber-300"
-                            >
-                              停止する
-                            </button>
-                          </div>
+                        {msg.stopped ? (
+                          <p className="not-prose flex items-center gap-1 text-xs text-gray-400 dark:text-zinc-500">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="flex-none">
+                              <rect x="5" y="5" width="14" height="14" rx="2" />
+                            </svg>
+                            途中で停止しました（回答は生成されませんでした）
+                          </p>
+                        ) : (
+                          <>
+                            <span className="flex gap-1 py-0.5">
+                              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                            </span>
+                            {i === streamingIndex && elapsedSec >= 8 && (
+                              <div className="not-prose flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                                <span>応答に時間がかかっています…（{elapsedSec}秒経過）</span>
+                                <button
+                                  type="button"
+                                  onClick={handleStop}
+                                  className="underline decoration-dotted hover:text-amber-700 dark:hover:text-amber-300"
+                                >
+                                  停止する
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     ) : msg.role === 'assistant' ? (
@@ -748,6 +782,14 @@ export default function Home() {
                               >
                                 {displayedContent}
                               </ReactMarkdown>
+                            )}
+                            {msg.stopped && !(loading && i === streamingIndex) && (
+                              <p className="not-prose mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-zinc-500">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="flex-none">
+                                  <rect x="5" y="5" width="14" height="14" rx="2" />
+                                </svg>
+                                途中で停止しました
+                              </p>
                             )}
                             {!(loading && i === streamingIndex) && msg.content && (
                               <div className="not-prose flex items-center justify-between mt-1 gap-2">
