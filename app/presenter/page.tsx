@@ -52,7 +52,7 @@ export default function PresenterPage() {
         {/* ヘッダー */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ocean-700">
               <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
               <circle cx="8.5" cy="10" r="1" fill="currentColor" stroke="none" />
               <circle cx="15.5" cy="10" r="1" fill="currentColor" stroke="none" />
@@ -92,7 +92,7 @@ export default function PresenterPage() {
             className={`flex-none flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
               copied
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50'
+                : 'bg-ocean-100 text-ocean-700 hover:bg-ocean-200 dark:bg-ocean-900/30 dark:text-ocean-400 dark:hover:bg-ocean-900/50'
             }`}
           >
             {copied ? (
@@ -119,14 +119,14 @@ export default function PresenterPage() {
               if (!info?.model) return null
               return (
                 <div key={n} className="flex items-start gap-2.5">
-                  <svg className="flex-none mt-0.5 text-indigo-400 dark:text-indigo-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="flex-none mt-0.5 text-ocean-400 dark:text-ocean-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
                     <path d="M9 18h6"/>
                     <path d="M10 22h4"/>
                   </svg>
                   <div className="flex flex-col min-w-0 gap-0.5">
                     {info.label && (
-                      <span className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">{info.label}</span>
+                      <span className="text-xs text-ocean-700 dark:text-ocean-400 font-medium">{info.label}</span>
                     )}
                     <span className="text-sm font-mono text-gray-700 dark:text-zinc-200 break-all leading-snug">
                       {info.model}

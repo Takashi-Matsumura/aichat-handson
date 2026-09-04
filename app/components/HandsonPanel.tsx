@@ -122,7 +122,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
         disabled={fontSizeIndex === 0}
         aria-label="文字を小さく"
         title="文字を小さく"
-        className="px-2 py-0.5 text-xs font-bold rounded text-indigo-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
+        className="px-2 py-0.5 text-xs font-bold rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
       >
         A−
       </button>
@@ -132,7 +132,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
         disabled={fontSizeIndex === FONT_SIZES.length - 1}
         aria-label="文字を大きく"
         title="文字を大きく"
-        className="px-2 py-0.5 text-sm font-bold rounded text-indigo-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
+        className="px-2 py-0.5 text-sm font-bold rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
       >
         A＋
       </button>
@@ -145,15 +145,15 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
       className={`
         flex-none flex flex-col overflow-hidden
         bg-white dark:bg-zinc-800
-        border-t-2 border-indigo-400 dark:border-indigo-600
-        md:border-t-0 md:border-l-2 md:border-indigo-300 dark:md:border-indigo-700
+        border-t-2 border-ocean-400 dark:border-ocean-600
+        md:border-t-0 md:border-l-2 md:border-ocean-300 dark:md:border-ocean-700
         md:absolute md:top-0 md:right-0 md:bottom-0 md:w-full md:min-w-0 md:max-h-none md:z-20
         transition-[max-height,max-width] duration-300 ease-in-out
         ${isOpen ? 'max-h-[50vh]' : 'max-h-0'}
         ${!isOpen ? 'md:max-w-0' : isFull ? 'md:max-w-full' : 'md:max-w-[50%]'}
       `}
     >
-      <div className="flex-none px-5 pt-3 pb-0 border-b border-indigo-700 dark:border-indigo-700 bg-indigo-600 dark:bg-indigo-800 z-10">
+      <div className="flex-none px-5 pt-3 pb-0 border-b border-ocean-800 dark:border-ocean-800 bg-ocean-700 dark:bg-ocean-900 z-10">
         {/* タイトル行（デスクトップのみ・全画面トグル＋フォントサイズ） */}
         <div className="hidden md:flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
@@ -164,7 +164,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
               disabled={isFull}
               aria-label="テキストを全画面表示"
               title="全画面表示"
-              className="p-0.5 rounded text-indigo-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-0.5 rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                 <polygon points="16 5 16 19 6 12" />
@@ -180,7 +180,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
               disabled={!isFull}
               aria-label="テキストを画面半分に戻す"
               title="画面半分に戻す"
-              className="p-0.5 rounded text-indigo-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-0.5 rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                 <polygon points="8 5 8 19 18 12" />
@@ -210,7 +210,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
                     className={`flex-none ${compactTabs ? 'w-9 px-0 text-center' : 'px-3'} py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
                       active
                         ? 'border-white text-white bg-white/15'
-                        : 'border-transparent text-indigo-200 hover:text-white hover:bg-white/10'
+                        : 'border-transparent text-ocean-200 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     {compactTabs ? page.id : page.title}
@@ -267,7 +267,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
                         onClick={() => onUsePrompt(text)}
                         aria-label="入力"
                         title="入力"
-                        className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                        className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded bg-ocean-700 text-white hover:bg-ocean-800 transition-colors"
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

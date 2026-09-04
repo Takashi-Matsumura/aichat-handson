@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* テーマカラー「Ocean」。H208°の深い青を基準に、白文字との組み合わせで
+   4.5:1以上のコントラストを確保した ocean-700 (#085191) を中心に据えたスケール。 */
+@theme {
+  --color-ocean-50: #f0f8fe;
+  --color-ocean-100: #ddeefd;
+  --color-ocean-200: #b6dbfb;
+  --color-ocean-300: #81c1f8;
+  --color-ocean-400: #3d9ff5;
+  --color-ocean-500: #0c82e9;
+  --color-ocean-600: #0a67b8;
+  --color-ocean-700: #085191;
+  --color-ocean-800: #063e6f;
+  --color-ocean-900: #042e52;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

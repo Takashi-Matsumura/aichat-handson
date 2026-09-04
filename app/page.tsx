@@ -442,7 +442,7 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-zinc-900">
       <header className="flex-none bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500 flex-none">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ocean-700 flex-none">
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
             <circle cx="8.5" cy="10" r="1" fill="currentColor" stroke="none" />
             <circle cx="15.5" cy="10" r="1" fill="currentColor" stroke="none" />
@@ -470,7 +470,7 @@ export default function Home() {
               }
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                 selectedModel === n
-                  ? 'bg-indigo-500 text-white'
+                  ? 'bg-ocean-700 text-white'
                   : panelOpen
                     ? 'text-gray-500 dark:text-zinc-400 cursor-default'
                     : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
@@ -507,7 +507,7 @@ export default function Home() {
               aria-label={panelOpen ? 'テキストを閉じる' : 'テキストを開く'}
               className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
                 panelOpen
-                  ? 'border-indigo-400 bg-indigo-50 text-indigo-500 dark:border-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-400'
+                  ? 'border-ocean-400 bg-ocean-50 text-ocean-700 dark:border-ocean-500 dark:bg-ocean-900/30 dark:text-ocean-400'
                   : 'border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
               }`}
             >
@@ -540,7 +540,7 @@ export default function Home() {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="flex-none w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold mr-2 mt-1">
+                  <div className="flex-none w-7 h-7 rounded-full bg-ocean-700 flex items-center justify-center text-white text-xs font-bold mr-2 mt-1">
                     AI
                   </div>
                 )}
@@ -591,7 +591,7 @@ export default function Home() {
                   <div
                     className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed break-words ${
                       msg.role === 'user'
-                        ? 'bg-indigo-500 text-white rounded-tr-sm whitespace-pre-wrap'
+                        ? 'bg-ocean-700 text-white rounded-tr-sm whitespace-pre-wrap'
                         : 'bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-100 border border-gray-200 dark:border-zinc-700 rounded-tl-sm prose prose-sm dark:prose-invert max-w-none'
                     }`}
                   >
@@ -720,7 +720,7 @@ export default function Home() {
                                   title={msg.showTokens ? 'マークダウン表示に戻す' : 'トークン単位で表示'}
                                   className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors ${
                                     msg.showTokens
-                                      ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400'
+                                      ? 'bg-ocean-100 text-ocean-700 dark:bg-ocean-900/40 dark:text-ocean-400'
                                       : 'text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed'
                                   }`}
                                 >
@@ -770,7 +770,7 @@ export default function Home() {
                   <div className="flex-1 h-1.5 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
-                        pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-indigo-300 dark:bg-indigo-500'
+                        pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-ocean-300 dark:bg-ocean-500'
                       }`}
                       style={{ width: `${pct}%` }}
                     />
@@ -825,7 +825,7 @@ export default function Home() {
                 placeholder="メッセージを入力（Enterで送信、Shift+Enterで改行）"
                 rows={1}
                 disabled={loading}
-                className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-4 py-2.5 text-base md:text-sm text-gray-800 dark:text-zinc-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50 max-h-32 overflow-y-auto"
+                className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-4 py-2.5 text-base md:text-sm text-gray-800 dark:text-zinc-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ocean-400 disabled:opacity-50 max-h-32 overflow-y-auto"
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
               />
               {loading ? (
@@ -846,7 +846,7 @@ export default function Home() {
                   disabled={!input.trim()}
                   aria-label="送信"
                   title="送信"
-                  className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13" />
