@@ -48,23 +48,24 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-10">
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <Link
+            href="/"
+            title="チャット画面に戻る"
+            aria-label="チャット画面に戻る"
+            className="mt-0.5 shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </Link>
           <div>
             <h1 className="text-xl font-bold">AI利用状況ダッシュボード</h1>
             <p className="mt-1 text-xs text-foreground/50">
               期間: {formatDate(range.from)} 〜 {formatDate(range.to)} ・ ログインは無く、接続セッション単位で匿名集計しています
             </p>
           </div>
-          <Link
-            href="/"
-            className="shrink-0 flex items-center gap-1.5 text-sm text-foreground/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            チャット画面に戻る
-          </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

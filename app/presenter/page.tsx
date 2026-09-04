@@ -35,7 +35,18 @@ export default function PresenterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center px-6 py-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center px-6 py-10 relative">
+      <Link
+        href="/"
+        title="チャット画面に戻る"
+        aria-label="チャット画面に戻る"
+        className="absolute top-6 left-6 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+      </Link>
       <div className="w-full max-w-md flex flex-col items-center gap-8">
 
         {/* ヘッダー */}
@@ -133,18 +144,6 @@ export default function PresenterPage() {
             })
           )}
         </div>
-
-        {/* チャットに戻るリンク */}
-        <Link
-          href="/"
-          className="text-sm text-gray-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          チャット画面に戻る
-        </Link>
       </div>
     </div>
   )

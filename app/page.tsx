@@ -500,21 +500,6 @@ export default function Home() {
               <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
           </Link>
-          {/* 受講者向けURL共有ページへのリンク */}
-          <Link
-            href="/presenter"
-            title="受講者向けURL共有"
-            aria-label="受講者向けURL共有"
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <path d="M14 14h3v3h-3z" />
-              <path d="M17 17h3v3h-3z" />
-            </svg>
-          </Link>
           {panelMounted && (
             <button
               onClick={togglePanel}
