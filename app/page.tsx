@@ -568,7 +568,9 @@ export default function Home() {
                     今日は何を聞いてみますか？
                   </h2>
                   <p className="mt-1.5 text-sm text-gray-400 dark:text-zinc-500">
-                    メッセージを入力するか、下の例から選んでみましょう
+                    {panelOpen
+                      ? 'ハンズオンテキストの指示に沿って話しかけてみましょう'
+                      : 'メッセージを入力するか、下の例から選んでみましょう'}
                   </p>
                 </div>
               </div>
@@ -907,7 +909,8 @@ export default function Home() {
             </div>
           </form>
 
-          {isEmpty && (
+          {/* ハンズオンテキスト表示中はサンプルプロンプトを出さず、ハンズオンの指示に集中させる */}
+          {isEmpty && !panelOpen && (
             <div className="mt-4 w-full max-w-2xl mx-auto flex flex-wrap items-center justify-center gap-2 px-4">
               {SUGGESTED_PROMPTS.map((s) => (
                 <button
