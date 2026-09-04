@@ -9,6 +9,9 @@ const LLAMA_URLS: Record<number, string> = {
 }
 const MODEL = process.env.LLAMA_MODEL ?? 'gemma4'
 const MAX_ITERATIONS = Number(process.env.TOOL_MAX_ITERATIONS ?? 5)
+// 1リクエストあたりの生成トークン数の上限。モデルが reasoning_content を延々と吐き続けるなど
+// 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
+const MAX_TOKENS = Number(process.env.LLAMA_MAX_TOKENS ?? 2048)
 
 // 受講者を「ログインユーザー」の代わりに識別するための擬似セッションID。
 // 認証は行わず、ブラウザに保存されるこのCookieの値をそのまま利用状況分析のキーにする。
@@ -65,6 +68,7 @@ export async function POST(request: NextRequest) {
           messages: allMessages,
           stream: true,
           stream_options: { include_usage: true },
+          max_tokens: MAX_TOKENS,
         }),
       })
     } catch {
@@ -232,7 +236,7 @@ async function streamRound(
   send: (obj: unknown) => void,
   llamaUrl: string
 ): Promise<{ content: string; toolCalls: ToolCall[] }> {
-  const body: Record<string, unknown> = { model: MODEL, messages: convo, stream: true }
+  const body: Record<string, unknown> = { model: MODEL, messages: convo, stream: true, max_tokens: MAX_TOKENS }
   if (withTools) {
     body.tools = TOOLS
     body.tool_choice = 'auto'

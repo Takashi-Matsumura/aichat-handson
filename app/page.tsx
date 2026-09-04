@@ -82,10 +82,19 @@ export default function Home() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const wasLoadingRef = useRef(false)
   const [streamingIndex, setStreamingIndex] = useState<number | null>(null)
+  const [elapsedSec, setElapsedSec] = useState(0)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // 生成中の経過秒数を計測する（応答が長時間返らない場合にユーザーへ知らせるため）
+  useEffect(() => {
+    if (!loading) return
+    const start = Date.now()
+    const id = setInterval(() => setElapsedSec(Math.round((Date.now() - start) / 1000)), 1000)
+    return () => { clearInterval(id); setElapsedSec(0) }
+  }, [loading, streamingIndex])
 
   // loading が true → false に変わったとき（AI回答完了）に入力欄へフォーカス
   useEffect(() => {
@@ -201,6 +210,13 @@ export default function Home() {
         ))
       }
     } catch { /* ignore */ }
+  }
+
+  // 生成中の応答を中断する（メッセージ履歴は残す）。応答が長時間返らないときの避難ハッチ。
+  function handleStop() {
+    abortControllerRef.current?.abort()
+    setLoading(false)
+    setStreamingIndex(null)
   }
 
   function handleClearChat() {
@@ -690,11 +706,25 @@ export default function Home() {
                     }`}
                   >
                     {msg.content === '' && msg.role === 'assistant' ? (
-                      <span className="flex gap-1 py-0.5">
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
-                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="flex gap-1 py-0.5">
+                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                        </span>
+                        {i === streamingIndex && elapsedSec >= 8 && (
+                          <div className="not-prose flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                            <span>応答に時間がかかっています…（{elapsedSec}秒経過）</span>
+                            <button
+                              type="button"
+                              onClick={handleStop}
+                              className="underline decoration-dotted hover:text-amber-700 dark:hover:text-amber-300"
+                            >
+                              停止する
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ) : msg.role === 'assistant' ? (
                       <>
                         {msg.showTokens && msg.tokens ? (
@@ -913,18 +943,32 @@ export default function Home() {
                 </svg>
                 <span className="text-[10px] font-bold leading-none">{webSearchEnabled ? 'ON' : 'OFF'}</span>
               </button>
-              <button
-                type="submit"
-                disabled={loading || !input.trim()}
-                aria-label="送信"
-                title="送信"
-                className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
+              {loading ? (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  aria-label="生成を停止"
+                  title="生成を停止"
+                  className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="5" y="5" width="14" height="14" rx="2" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  aria-label="送信"
+                  title="送信"
+                  className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              )}
             </div>
           </form>
         </div>

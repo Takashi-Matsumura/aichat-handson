@@ -11,6 +11,9 @@ import {
 import type { ClassificationResult } from "./store";
 
 const MAX_ATTEMPTS = 3;
+// 分類はJSON1個を返すだけの軽いタスクなので、reasoning_content が暴走しても
+// このリクエストがチャット用スロットを長時間占有しないよう上限を絞る。
+const MAX_TOKENS = Number(process.env.LLAMA_CLASSIFY_MAX_TOKENS ?? 512);
 
 export async function classify(
   llamaUrl: string,
@@ -70,6 +73,7 @@ async function requestClassificationJson(
         messages,
         stream: false,
         response_format: { type: 'json_schema', json_schema: CLASSIFICATION_JSON_SCHEMA },
+        max_tokens: MAX_TOKENS,
       }),
     })
   } catch {
@@ -82,7 +86,7 @@ async function requestClassificationJson(
     res = await fetch(`${llamaUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: false }),
+      body: JSON.stringify({ model, messages, stream: false, max_tokens: MAX_TOKENS }),
     })
     if (!res.ok) {
       throw new Error(`分類リクエストが失敗しました (status ${res.status})`)
