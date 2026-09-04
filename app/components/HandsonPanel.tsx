@@ -13,18 +13,16 @@ type Props = {
   onSetFull: (full: boolean) => void
   onUsePrompt: (text: string) => void
   onClose: () => void
-  onWebSearchChange?: (enabled: boolean) => void
   onPageChange?: (pageId: number) => void
 }
 
-type Page = { id: number; title: string; file: string; webSearch?: boolean }
+type Page = { id: number; title: string; file: string }
 
 const PAGES: Page[] = [
   { id: 1, title: 'AIリテラシー', file: '/handson/handson1.md' },
   { id: 2, title: 'AIの仕組み', file: '/handson/handson2.md' },
   { id: 3, title: 'AIとセキュリティ', file: '/handson/handson3.md' },
   { id: 4, title: 'AIの推論とエージェント', file: '/handson/handson4.md' },
-  { id: 5, title: 'AIとWeb検索', file: '/handson/handson5.md', webSearch: true },
 ]
 
 function extractText(node: React.ReactNode): string {
@@ -39,7 +37,7 @@ function extractText(node: React.ReactNode): string {
 const FONT_SIZES = [0.75, 0.875, 1.0, 1.25, 1.5, 1.75]
 const DEFAULT_FONT_SIZE_INDEX = 1
 
-export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, onClose, onWebSearchChange, onPageChange }: Props) {
+export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, onClose, onPageChange }: Props) {
   const [currentPage, setCurrentPage] = useState(1)
   const [contents, setContents] = useState<Record<number, string>>({})
   const [fetchError, setFetchError] = useState<Record<number, boolean>>({})
@@ -71,13 +69,11 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // パネルが開いた瞬間に現在ページのモデルとWeb検索状態を親へ反映する
+  // パネルが開いた瞬間に現在ページのモデルを親へ反映する
   // （フリーチャット中に手動変更した設定をパネルのページ状態で上書きする）
   useEffect(() => {
     if (!isOpen) return
-    const page = PAGES.find((p) => p.id === currentPage)
     onPageChange?.(currentPage)
-    onWebSearchChange?.(page?.webSearch === true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
@@ -209,7 +205,6 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
                     title={page.title}
                     onClick={() => {
                       setCurrentPage(page.id)
-                      onWebSearchChange?.(page.webSearch === true)
                       onPageChange?.(page.id)
                     }}
                     className={`flex-none ${compactTabs ? 'w-9 px-0 text-center' : 'px-3'} py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${

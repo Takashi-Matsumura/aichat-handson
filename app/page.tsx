@@ -13,15 +13,6 @@ type ModelInfo = { model: string | null; label: string | null; online: boolean; 
 
 type Token = { id: number; piece: string }
 
-type ToolEvent = {
-  id: string
-  name: 'web_search' | 'open_url'
-  phase: 'start' | 'result'
-  query?: string
-  url?: string
-  summary?: string
-}
-
 type Message = {
   role: 'user' | 'assistant'
   content: string
@@ -32,8 +23,6 @@ type Message = {
   showThinking?: boolean
   tokens?: Token[]
   showTokens?: boolean
-  toolEvents?: ToolEvent[]
-  showTools?: boolean
   versions?: string[]
   displayVersionIdx?: number
   stopped?: boolean
@@ -42,13 +31,6 @@ type Message = {
 type ChatStreamPayload = {
   choices?: { delta?: { content?: string } }[]
   error?: string
-  tool_event?: {
-    phase: 'start' | 'result'
-    id: string
-    name: 'web_search' | 'open_url'
-    args?: { query?: string; url?: string }
-    summary?: string
-  }
 }
 
 const TOKEN_COLORS = [
@@ -69,8 +51,6 @@ export default function Home() {
   const [panelMounted, setPanelMounted] = useState(false)
   const [panelFull, setPanelFull] = useState(false)
   const [thinking, setThinking] = useState(false)
-  // Web検索（tool calling）はハンズオン5ページ目を開いているときだけ有効
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const [selectedModel, setSelectedModel] = useState<1 | 2>(1)
   const [modelInfos, setModelInfos] = useState<Record<1 | 2, ModelInfo>>({
     1: { model: null, label: null, online: false, ctxSize: null },
@@ -234,7 +214,6 @@ export default function Home() {
     targetIndex: number,
     historyMessages: { role: string; content: string }[],
     useThink: boolean,
-    useWebSearch: boolean,
     modelIdx: 1 | 2,
   ) {
     const update = (updater: (msg: Message) => Message) =>
@@ -248,7 +227,7 @@ export default function Home() {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: historyMessages, thinking: useThink, webSearch: useWebSearch, modelIndex: modelIdx }),
+      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx }),
       signal: abortControllerRef.current.signal,
     })
 
@@ -280,22 +259,6 @@ export default function Home() {
         try { parsed = JSON.parse(payload) } catch { continue }
 
         if (parsed.error) throw new Error(parsed.error)
-
-        if (parsed.tool_event) {
-          const ev = parsed.tool_event
-          update(msg => {
-            const events = msg.toolEvents ? [...msg.toolEvents] : []
-            if (ev.phase === 'start') {
-              events.push({ id: ev.id, name: ev.name, phase: 'start', query: ev.args?.query, url: ev.args?.url })
-            } else {
-              const idx = events.findIndex((e) => e.id === ev.id)
-              if (idx >= 0) events[idx] = { ...events[idx], phase: 'result', summary: ev.summary }
-              else events.push({ id: ev.id, name: ev.name, phase: 'result', summary: ev.summary })
-            }
-            return { ...msg, toolEvents: events, showTools: true }
-          })
-          continue
-        }
 
         const chunk = parsed.choices?.[0]?.delta?.content ?? ''
         if (chunk) {
@@ -332,7 +295,7 @@ export default function Home() {
     if (!text || loading) return
 
     setError(null)
-    const useThink = thinking && !webSearchEnabled
+    const useThink = thinking
     const userMessage: Message = { role: 'user', content: text }
     const history = [...messages, userMessage]
     const targetIndex = history.length
@@ -346,7 +309,6 @@ export default function Home() {
         targetIndex,
         history.map(m => ({ role: m.role, content: m.content })),
         useThink,
-        webSearchEnabled,
         selectedModel,
       )
     } catch (err) {
@@ -375,7 +337,7 @@ export default function Home() {
     if (msg.role !== 'assistant') return
 
     setError(null)
-    const useThink = thinking && !webSearchEnabled
+    const useThink = thinking
     const prevVersions = [...(msg.versions ?? []), msg.content]
 
     setMessages(prev => prev.map((m, j) =>
@@ -390,8 +352,6 @@ export default function Home() {
         showThinking: undefined,
         tokens: undefined,
         showTokens: undefined,
-        toolEvents: undefined,
-        showTools: undefined,
         versions: prevVersions,
         displayVersionIdx: undefined,
       }
@@ -404,7 +364,6 @@ export default function Home() {
         index,
         messages.slice(0, index).map(m => ({ role: m.role, content: m.content })),
         useThink,
-        webSearchEnabled,
         selectedModel,
       )
     } catch (err) {
@@ -470,23 +429,6 @@ export default function Home() {
         }
       }
     }))
-  }
-
-  function hostOf(url?: string) {
-    if (!url) return 'ページ'
-    try {
-      return new URL(url).hostname
-    } catch {
-      return url
-    }
-  }
-
-  function toolLabel(ev: ToolEvent) {
-    if (ev.name === 'web_search') {
-      const q = ev.query ? `「${ev.query}」` : ''
-      return ev.phase === 'start' ? `${q}を検索中` : `${q}を検索しました`
-    }
-    return ev.phase === 'start' ? `${hostOf(ev.url)} を開いています` : `${hostOf(ev.url)} を読みました`
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -556,18 +498,6 @@ export default function Home() {
               <line x1="18" y1="20" x2="18" y2="10" />
               <line x1="12" y1="20" x2="12" y2="4" />
               <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
-          </Link>
-          {/* セキュリティ実験ラボへのリンク */}
-          <Link
-            href="/security-lab"
-            title="セキュリティ実験ラボ"
-            aria-label="セキュリティ実験ラボ"
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5Z" />
-              <path d="M9.5 12 11 13.5 15 9.5" />
             </svg>
           </Link>
           {/* 受講者向けURL共有ページへのリンク */}
@@ -667,54 +597,6 @@ export default function Home() {
                             {msg.thinking}
                           </ReactMarkdown>
                           {!msg.thinkingDone && <span className="animate-pulse">▌</span>}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ツール実行（Web検索・ページ取得）表示 */}
-                  {msg.role === 'assistant' && msg.toolEvents && msg.toolEvents.length > 0 && (
-                    <div className="rounded-xl border border-sky-200 dark:border-sky-800 overflow-hidden text-sm">
-                      <button
-                        type="button"
-                        onClick={() => setMessages(prev => prev.map((m, j) =>
-                          j === i ? { ...m, showTools: !m.showTools } : m
-                        ))}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/20 hover:bg-sky-100 dark:hover:bg-sky-900/30 transition-colors"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M2 12h20" />
-                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                        </svg>
-                        {msg.toolEvents.some((e) => e.phase === 'start') ? (
-                          <span className="animate-pulse">Webで調べています...</span>
-                        ) : (
-                          <span>Web検索の経過</span>
-                        )}
-                        <svg
-                          width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                          className={`ml-auto transition-transform ${msg.showTools ? 'rotate-180' : ''}`}
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-                      {msg.showTools && (
-                        <div className="px-3 py-2 bg-sky-50/60 dark:bg-sky-900/10 border-t border-sky-200 dark:border-sky-800 space-y-2 max-h-56 overflow-y-auto">
-                          {msg.toolEvents.map((ev, k) => (
-                            <div key={`${ev.id}-${k}`} className="text-xs">
-                              <div className="flex items-center gap-1.5 font-medium text-sky-800 dark:text-sky-300">
-                                <span>{ev.name === 'web_search' ? '🔍' : '📄'}</span>
-                                <span className="break-all">{toolLabel(ev)}</span>
-                                {ev.phase === 'start' && <span className="animate-pulse">…</span>}
-                              </div>
-                              {ev.summary && (
-                                <p className="mt-0.5 pl-5 text-sky-700/80 dark:text-sky-400/70 break-all line-clamp-3">
-                                  {ev.summary}
-                                </p>
-                              )}
-                            </div>
-                          ))}
                         </div>
                       )}
                     </div>
@@ -961,30 +843,6 @@ export default function Home() {
                 className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-4 py-2.5 text-base md:text-sm text-gray-800 dark:text-zinc-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50 max-h-32 overflow-y-auto"
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
               />
-              {/* Web検索トグル（パネルを閉じているときは手動ON/OFF可、開いているときはページ5連動） */}
-              <button
-                type="button"
-                onClick={() => { if (!panelOpen) setWebSearchEnabled(prev => !prev) }}
-                aria-pressed={webSearchEnabled}
-                title={
-                  panelOpen
-                    ? (webSearchEnabled
-                        ? 'Web検索 ON：AIとWeb検索ページで有効'
-                        : 'Web検索 OFF：AIとWeb検索ページを開くと有効')
-                    : (webSearchEnabled ? 'Web検索 ON（クリックでOFF）' : 'Web検索 OFF（クリックでON）')
-                }
-                className={`flex-none h-9 flex items-center gap-1 px-2 rounded-xl border select-none transition-colors ${
-                  webSearchEnabled
-                    ? 'border-sky-400 bg-sky-50 text-sky-600 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-400'
-                    : 'border-gray-200 dark:border-zinc-600 text-gray-300 dark:text-zinc-600'
-                } ${!panelOpen ? 'hover:opacity-80' : 'cursor-default'}`}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-                <span className="text-[10px] font-bold leading-none">{webSearchEnabled ? 'ON' : 'OFF'}</span>
-              </button>
               {loading ? (
                 <button
                   type="button"
@@ -1034,9 +892,8 @@ export default function Home() {
             setInput(text)
             inputRef.current?.focus()
           }}
-          onWebSearchChange={setWebSearchEnabled}
           onPageChange={(pageId) => {
-            // handson1〜3: gemma-3-4b（model 2）、handson4〜5: gemma-4-12b（model 1）
+            // handson1〜3: gemma-3-4b（model 2）、handson4: gemma-4-12b（model 1）
             switchModel(pageId <= 3 ? 2 : 1)
           }}
         />
