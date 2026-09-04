@@ -12,9 +12,6 @@ services:
       LLAMA_MODEL:           ${LLAMA_MODEL:-gemma4}
       LLAMA_MODEL_LABEL_1:   ${LLAMA_MODEL_LABEL_1:-}
       LLAMA_MODEL_LABEL_2:   ${LLAMA_MODEL_LABEL_2:-}
-      HTTP_PROXY:            http://172.16.1.36:8080
-      HTTPS_PROXY:           http://172.16.1.36:8080
-      NO_PROXY:              localhost,127.0.0.1,host.docker.internal
     networks:
       - aichat-net
     restart: unless-stopped
