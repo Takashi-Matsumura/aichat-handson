@@ -6,6 +6,12 @@ const LLAMA_URLS: Record<number, string> = {
   2: process.env.LLAMA_API_URL_2 ?? 'http://localhost:8081',
 }
 const MODEL = process.env.LLAMA_MODEL ?? 'gemma4'
+// llama.cpp へのリクエストで送るモデル名(MODEL)は環境変数1つの共通値だが、
+// 利用状況分析・推定コスト算出のためにはモデル1/2を区別した実際のモデル名が要る。
+const ANALYTICS_MODEL_NAMES: Record<number, string> = {
+  1: 'gemma-4-12b',
+  2: 'gemma-3-4b',
+}
 // 1リクエストあたりの生成トークン数の上限。モデルが reasoning_content を延々と吐き続けるなど
 // 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
 const MAX_TOKENS = Number(process.env.LLAMA_MAX_TOKENS ?? 2048)
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
     await recordAndClassify({
       sessionId: sid,
       llamaUrl: LLAMA_URL,
-      model: MODEL,
+      model: ANALYTICS_MODEL_NAMES[n] ?? MODEL,
       promptText,
       responseText: text,
       latencyMs: Date.now() - startedAt,

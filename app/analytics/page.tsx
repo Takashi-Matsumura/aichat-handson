@@ -74,9 +74,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
           <StatTile label="出力トークン" value={summary.outputTokens.toLocaleString('ja-JP')} />
           <StatTile
-            label="推定コスト"
-            value={`$${summary.estimatedCost.toFixed(2)}`}
-            hint="ローカル実行のため実費はかかりません"
+            label="推定コスト（クラウドAI換算）"
+            value={`$${summary.estimatedCost.toFixed(4)}`}
+            hint="実際の課金はありません。同規模モデルをクラウドAPIで使った場合の参考値です"
           />
           <StatTile
             label="平均レスポンス時間"
