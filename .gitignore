@@ -44,3 +44,6 @@ next-env.d.ts
 # RAG知識ソース（講師が研修当日に置くファイル。コミットしない）
 /knowledge/*
 !/knowledge/README.md
+
+# 利用統計DB（サーバーが実行時に生成する。コミットしない）
+/data/

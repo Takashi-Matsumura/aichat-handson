@@ -1,8 +1,9 @@
-// AI利用ログのインメモリストア。
+// AI利用ログの書き込み口。SQLite(lib/analytics/db.ts)への唯一の書き込み経路。
 //
-// ai-usalysis-demo は PostgreSQL + Prisma に永続化するが、このハンズオン版はDBを持たない。
-// 代わりに Next.js サーバープロセスのメモリ内にため込むだけにする（サーバー再起動で消えてよい）。
-// dev の HMR でモジュールが再評価されてもデータが消えないよう、globalThis に固定して保持する。
+// promptMasked/responseMasked・セッションIDは保存しない。会場全体の集計に必要な
+// 数値・分類結果だけを永続化する（個人統計はブラウザ側で完結させる設計のため）。
+
+import { getDb } from "./db";
 
 export type ClassificationResult = {
   business_category: string;
@@ -17,11 +18,8 @@ export type ClassificationResult = {
 
 export type AiRequestRecord = {
   id: string;
-  sessionId: string;
   provider: string;
   model: string;
-  promptMasked: string;
-  responseMasked?: string;
   inputTokens?: number;
   outputTokens?: number;
   estimatedCost?: number;
@@ -29,35 +27,44 @@ export type AiRequestRecord = {
   status: "success" | "error";
   errorMessage?: string;
   createdAt: Date;
-  classification?: ClassificationResult;
 };
-
-type Store = {
-  requests: AiRequestRecord[];
-  sessions: Set<string>;
-};
-
-const globalForStore = globalThis as unknown as { __aiAnalyticsStore?: Store };
-
-export const store: Store =
-  globalForStore.__aiAnalyticsStore ??
-  (globalForStore.__aiAnalyticsStore = { requests: [], sessions: new Set() });
-
-export function registerSession(sessionId: string): void {
-  store.sessions.add(sessionId);
-}
 
 export function addRequest(record: AiRequestRecord): void {
-  store.sessions.add(record.sessionId);
-  store.requests.push(record);
+  getDb()
+    .prepare(
+      `INSERT INTO ai_requests
+        (id, provider, model, input_tokens, output_tokens, estimated_cost, latency_ms, status, error_message, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      record.id,
+      record.provider,
+      record.model,
+      record.inputTokens ?? null,
+      record.outputTokens ?? null,
+      record.estimatedCost ?? null,
+      record.latencyMs ?? null,
+      record.status,
+      record.errorMessage ?? null,
+      record.createdAt.toISOString(),
+    );
 }
 
-/** 分類が非同期(after())で完了した後、対応レコードへ結果を書き戻す。 */
+/** 分類が非同期(after())で完了した後、対応レコードへ分類結果(の一部)を書き戻す。 */
 export function attachClassification(requestId: string, classification: ClassificationResult): void {
-  const record = store.requests.find((r) => r.id === requestId);
-  if (record) record.classification = classification;
-}
-
-export function getAllRequests(): AiRequestRecord[] {
-  return store.requests;
+  getDb()
+    .prepare(
+      `UPDATE ai_requests
+       SET business_category = ?, usage_purpose = ?, task_type = ?, improvement_type = ?, automation_potential = ?, sensitivity_level = ?
+       WHERE id = ?`,
+    )
+    .run(
+      classification.business_category,
+      classification.usage_purpose,
+      classification.task_type,
+      classification.improvement_type,
+      classification.automation_potential,
+      classification.sensitivity_level,
+      requestId,
+    );
 }

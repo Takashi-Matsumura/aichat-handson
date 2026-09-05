@@ -28,6 +28,11 @@ COPY --from=builder /app/public                    ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
 
+# 利用統計(SQLite)の永続化先。非rootユーザーで書き込めるよう事前に作成しておく。
+# コンテナ再作成をまたいで残したい場合は、このパスをボリュームとしてマウントする。
+RUN mkdir -p ./data && chown nextjs:nodejs ./data
+VOLUME ["/app/data"]
+
 USER nextjs
 EXPOSE 3000
 

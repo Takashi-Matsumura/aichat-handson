@@ -1,78 +1,68 @@
-// 集計ロジック。移植元: ai-usalysis-demo の src/server/analytics.ts。
-// 本家は PostgreSQL への生SQL($queryRaw)で集計するが、このハンズオン版はDBを持たないため
-// インメモリストア(lib/analytics/store.ts)の配列を filter/reduce で集計する。
+// 集計ロジック。SQLite(lib/analytics/db.ts)に対するSQL集計。
 // 認可(requireRole)・部署別集計は行わない（ログインを省いているため）。
-// activeUserCount は「ユーザー」の代わりに擬似セッションID(sessionId)のユニーク数を数える。
+// activeUserCount は永続化していない(lib/analytics/active-sessions.ts の)非永続カウンタから取る。
 
 import type { DateRange } from "./analytics-query";
-import { getAllRequests, type AiRequestRecord } from "./store";
+import { getDb } from "./db";
+import { getActiveSessionCount } from "./active-sessions";
+import { CLASSIFICATION_DIMENSION_COLUMNS, type ClassificationDimension, type Summary, type ModelStat } from "./types";
 
-export const CLASSIFICATION_DIMENSION_COLUMNS = [
-  "business_category",
-  "usage_purpose",
-  "task_type",
-  "improvement_type",
-  "automation_potential",
-  "sensitivity_level",
-] as const;
+export { CLASSIFICATION_DIMENSION_COLUMNS };
+export type { ClassificationDimension, Summary, ModelStat };
 
-export type ClassificationDimension = (typeof CLASSIFICATION_DIMENSION_COLUMNS)[number];
-
-export type Summary = {
-  requestCount: number;
-  activeUserCount: number;
-  inputTokens: number;
-  outputTokens: number;
-  estimatedCost: number;
-  averageLatencyMs: number | null;
-  errorRate: number;
-  dailyCounts: { date: string; count: number }[];
-  monthlyCounts: { month: string; count: number }[];
-};
-
-function filterByRange(from: Date, to: Date, sessionId?: string): AiRequestRecord[] {
-  return getAllRequests().filter(
-    (r) => r.createdAt >= from && r.createdAt < to && (sessionId == null || r.sessionId === sessionId),
-  );
+function toIso(d: Date): string {
+  return d.toISOString();
 }
 
-function average(values: number[]): number | null {
-  if (values.length === 0) return null;
-  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-}
+export async function getSummary({ from, to }: DateRange): Promise<Summary> {
+  const db = getDb();
+  const totals = db
+    .prepare(
+      `SELECT
+         COUNT(*) as requestCount,
+         COALESCE(SUM(input_tokens), 0) as inputTokens,
+         COALESCE(SUM(output_tokens), 0) as outputTokens,
+         COALESCE(SUM(estimated_cost), 0) as estimatedCost,
+         AVG(latency_ms) as averageLatencyMs,
+         SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as errorCount
+       FROM ai_requests
+       WHERE created_at >= ? AND created_at < ?`,
+    )
+    .get(toIso(from), toIso(to)) as {
+    requestCount: number;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCost: number;
+    averageLatencyMs: number | null;
+    errorCount: number;
+  };
 
-export async function getSummary({ from, to }: DateRange, sessionId?: string): Promise<Summary> {
-  const rows = filterByRange(from, to, sessionId);
-  const requestCount = rows.length;
-  const activeUserCount = new Set(rows.map((r) => r.sessionId)).size;
-  const inputTokens = rows.reduce((a, r) => a + (r.inputTokens ?? 0), 0);
-  const outputTokens = rows.reduce((a, r) => a + (r.outputTokens ?? 0), 0);
-  const estimatedCost = rows.reduce((a, r) => a + (r.estimatedCost ?? 0), 0);
-  const averageLatencyMs = average(rows.map((r) => r.latencyMs).filter((v): v is number => v != null));
-  const errorCount = rows.filter((r) => r.status !== "success").length;
+  const dailyCounts = db
+    .prepare(
+      `SELECT substr(created_at, 1, 10) as date, COUNT(*) as count
+       FROM ai_requests
+       WHERE created_at >= ? AND created_at < ?
+       GROUP BY date ORDER BY date`,
+    )
+    .all(toIso(from), toIso(to)) as { date: string; count: number }[];
 
-  const dailyMap = new Map<string, number>();
-  const monthlyMap = new Map<string, number>();
-  for (const r of rows) {
-    const date = r.createdAt.toISOString().slice(0, 10);
-    dailyMap.set(date, (dailyMap.get(date) ?? 0) + 1);
-    monthlyMap.set(date.slice(0, 7), (monthlyMap.get(date.slice(0, 7)) ?? 0) + 1);
-  }
-  const dailyCounts = [...dailyMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count }));
-  const monthlyCounts = [...monthlyMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, count]) => ({ month, count }));
+  const monthlyCounts = db
+    .prepare(
+      `SELECT substr(created_at, 1, 7) as month, COUNT(*) as count
+       FROM ai_requests
+       WHERE created_at >= ? AND created_at < ?
+       GROUP BY month ORDER BY month`,
+    )
+    .all(toIso(from), toIso(to)) as { month: string; count: number }[];
 
   return {
-    requestCount,
-    activeUserCount,
-    inputTokens,
-    outputTokens,
-    estimatedCost,
-    averageLatencyMs,
-    errorRate: requestCount > 0 ? errorCount / requestCount : 0,
+    requestCount: totals.requestCount,
+    activeUserCount: getActiveSessionCount(from, to),
+    inputTokens: totals.inputTokens,
+    outputTokens: totals.outputTokens,
+    estimatedCost: totals.estimatedCost,
+    averageLatencyMs: totals.averageLatencyMs != null ? Math.round(totals.averageLatencyMs) : null,
+    errorRate: totals.requestCount > 0 ? totals.errorCount / totals.requestCount : 0,
     dailyCounts,
     monthlyCounts,
   };
@@ -82,121 +72,55 @@ export async function getCategoryBreakdown(
   { from, to }: DateRange,
   dimensions: ClassificationDimension[] = [...CLASSIFICATION_DIMENSION_COLUMNS],
 ): Promise<Record<string, { value: string; count: number }[]>> {
-  const rows = filterByRange(from, to).filter((r) => r.classification);
-
+  const db = getDb();
   const result: Record<string, { value: string; count: number }[]> = {};
   for (const dimension of dimensions) {
-    const counts = new Map<string, number>();
-    for (const r of rows) {
-      const value = String(r.classification![dimension]);
-      counts.set(value, (counts.get(value) ?? 0) + 1);
-    }
-    result[dimension] = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([value, count]) => ({ value, count }));
+    // dimension はCLASSIFICATION_DIMENSION_COLUMNS由来の固定値のみを許可する
+    // (SQLの列名位置へ直接埋め込むため、任意文字列の混入を防ぐ)。
+    if (!CLASSIFICATION_DIMENSION_COLUMNS.includes(dimension)) continue;
+    const rows = db
+      .prepare(
+        `SELECT ${dimension} as value, COUNT(*) as count
+         FROM ai_requests
+         WHERE created_at >= ? AND created_at < ? AND ${dimension} IS NOT NULL
+         GROUP BY ${dimension} ORDER BY count DESC`,
+      )
+      .all(toIso(from), toIso(to)) as { value: string; count: number }[];
+    result[dimension] = rows;
   }
   return result;
 }
 
-export type ModelStat = {
-  provider: string;
-  model: string;
-  requestCount: number;
-  inputTokens: number;
-  outputTokens: number;
-  estimatedCost: number;
-  averageLatencyMs: number | null;
-  errorCount: number;
-};
-
-export async function getModelStats({ from, to }: DateRange, sessionId?: string): Promise<ModelStat[]> {
-  const rows = filterByRange(from, to, sessionId);
-
-  type Acc = {
+export async function getModelStats({ from, to }: DateRange): Promise<ModelStat[]> {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT
+         provider, model,
+         COUNT(*) as requestCount,
+         COALESCE(SUM(input_tokens), 0) as inputTokens,
+         COALESCE(SUM(output_tokens), 0) as outputTokens,
+         COALESCE(SUM(estimated_cost), 0) as estimatedCost,
+         AVG(latency_ms) as averageLatencyMs,
+         SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as errorCount
+       FROM ai_requests
+       WHERE created_at >= ? AND created_at < ?
+       GROUP BY provider, model
+       ORDER BY requestCount DESC`,
+    )
+    .all(toIso(from), toIso(to)) as {
     provider: string;
     model: string;
     requestCount: number;
     inputTokens: number;
     outputTokens: number;
     estimatedCost: number;
-    latencies: number[];
+    averageLatencyMs: number | null;
     errorCount: number;
-  };
-  const map = new Map<string, Acc>();
-  for (const r of rows) {
-    const key = `${r.provider}/${r.model}`;
-    const entry =
-      map.get(key) ??
-      { provider: r.provider, model: r.model, requestCount: 0, inputTokens: 0, outputTokens: 0, estimatedCost: 0, latencies: [], errorCount: 0 };
-    entry.requestCount += 1;
-    entry.inputTokens += r.inputTokens ?? 0;
-    entry.outputTokens += r.outputTokens ?? 0;
-    entry.estimatedCost += r.estimatedCost ?? 0;
-    if (r.latencyMs != null) entry.latencies.push(r.latencyMs);
-    if (r.status !== "success") entry.errorCount += 1;
-    map.set(key, entry);
-  }
+  }[];
 
-  return [...map.values()]
-    .map((e) => ({
-      provider: e.provider,
-      model: e.model,
-      requestCount: e.requestCount,
-      inputTokens: e.inputTokens,
-      outputTokens: e.outputTokens,
-      estimatedCost: e.estimatedCost,
-      averageLatencyMs: average(e.latencies),
-      errorCount: e.errorCount,
-    }))
-    .sort((a, b) => b.requestCount - a.requestCount);
-}
-
-// 本家の CandidateItem から departmentName を除去したもの（部署別分析は行わないため）。
-export type CandidateItem = {
-  requestId: string;
-  createdAt: string;
-  businessCategory: string;
-  usagePurpose: string;
-  taskType: string;
-  confidence: number;
-  promptExcerpt: string;
-};
-
-function toCandidateItem(r: AiRequestRecord): CandidateItem {
-  const c = r.classification!;
-  return {
-    requestId: r.id,
-    createdAt: r.createdAt.toISOString(),
-    businessCategory: c.business_category,
-    usagePurpose: c.usage_purpose,
-    taskType: c.task_type,
-    confidence: c.confidence,
-    promptExcerpt: r.promptMasked.slice(0, 200),
-  };
-}
-
-function paginate(rows: AiRequestRecord[], page: number, pageSize: number): { items: CandidateItem[]; total: number } {
-  const sorted = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  const total = sorted.length;
-  const start = (page - 1) * pageSize;
-  return { items: sorted.slice(start, start + pageSize).map(toCandidateItem), total };
-}
-
-export async function getRagCandidates(
-  { from, to }: DateRange,
-  page: number,
-  pageSize: number,
-): Promise<{ items: CandidateItem[]; total: number }> {
-  const rows = filterByRange(from, to).filter((r) => r.classification?.rag_candidate === true);
-  return paginate(rows, page, pageSize);
-}
-
-export async function getAutomationCandidates(
-  { from, to }: DateRange,
-  page: number,
-  pageSize: number,
-): Promise<{ items: CandidateItem[]; total: number }> {
-  // 「候補」は自動化可能性が「高」と判定されたものに限定する。
-  const rows = filterByRange(from, to).filter((r) => r.classification?.automation_potential === "高");
-  return paginate(rows, page, pageSize);
+  return rows.map((r) => ({
+    ...r,
+    averageLatencyMs: r.averageLatencyMs != null ? Math.round(r.averageLatencyMs) : null,
+  }));
 }

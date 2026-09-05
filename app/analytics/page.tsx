@@ -1,29 +1,28 @@
+'use client'
+
 import Link from 'next/link'
-import { cookies } from 'next/headers'
-import { getSummary, getModelStats } from '@/lib/analytics/analytics'
-import { resolveDateRange, toURLSearchParams } from '@/lib/analytics/analytics-query'
+import { startTransition, useEffect, useState } from 'react'
+import { loadPersonalStats, type PersonalStats } from '@/lib/personal-stats'
 import { MODEL_PRICING, USD_TO_JPY_RATE, formatJPY } from '@/lib/analytics/pricing'
 import { StatTile } from '@/app/components/dashboard/StatTile'
 import { CostFlipTile } from '@/app/components/dashboard/CostFlipTile'
 
 const MODEL_PRICE_ENTRIES = Object.entries(MODEL_PRICING).map(([model, p]) => ({ model, ...p }))
 
-// インメモリストアの最新状態を都度反映するため、キャッシュせず常に動的にレンダリングする。
-export const dynamic = 'force-dynamic'
+function averageLatencyMs(stats: { latencySumMs: number; latencyCount: number }): number | null {
+  return stats.latencyCount > 0 ? Math.round(stats.latencySumMs / stats.latencyCount) : null
+}
 
-// チャットAPIが発行するセッションCookie。app/api/chat/route.ts の SESSION_COOKIE と同じ値。
-const SESSION_COOKIE = 'handson_sid'
+export default function AnalyticsPage() {
+  const [stats, setStats] = useState<PersonalStats | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>
-
-export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParams }) {
-  const range = resolveDateRange(toURLSearchParams(await searchParams))
-  const cookieStore = await cookies()
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
-
-  const [summary, models] = sessionId
-    ? await Promise.all([getSummary(range, sessionId), getModelStats(range, sessionId)])
-    : [null, []]
+  useEffect(() => {
+    startTransition(() => {
+      setStats(loadPersonalStats())
+      setLoaded(true)
+    })
+  }, [])
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-10">
@@ -43,41 +42,46 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           <div>
             <h1 className="text-xl font-bold">AI利用状況（あなたの利用分）</h1>
             <p className="mt-1 text-xs text-foreground/50">
-              この画面はあなたの接続セッション分だけを集計しています。会場全体の統計ではありません。
+              この画面はこのブラウザに記録された分だけを集計しています（サーバーには保存されません）。会場全体の統計ではありません。
             </p>
           </div>
         </div>
 
-        {!summary || summary.requestCount === 0 ? (
+        {!loaded ? (
+          <span className="text-sm text-foreground/40 animate-pulse">読み込み中...</span>
+        ) : !stats || stats.requestCount === 0 ? (
           <p className="rounded-xl border border-black/10 p-6 text-sm text-foreground/60 dark:border-white/15">
             まだチャットの利用履歴がありません。チャット画面で質問を送ると、ここに利用状況が表示されます。
           </p>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <StatTile label="質問した回数" value={summary.requestCount.toLocaleString('ja-JP')} />
-              <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
-              <StatTile label="出力トークン" value={summary.outputTokens.toLocaleString('ja-JP')} />
+              <StatTile label="質問した回数" value={stats.requestCount.toLocaleString('ja-JP')} />
+              <StatTile label="入力トークン" value={stats.inputTokens.toLocaleString('ja-JP')} />
+              <StatTile label="出力トークン" value={stats.outputTokens.toLocaleString('ja-JP')} />
               <CostFlipTile
                 label="推定コスト（クラウドAI換算）"
-                value={formatJPY(summary.estimatedCost)}
+                value={formatJPY(stats.estimatedCost)}
                 hint="実際の課金はありません。同規模モデルをクラウドAPIで使った場合の参考値です"
                 exchangeRate={USD_TO_JPY_RATE}
                 prices={MODEL_PRICE_ENTRIES}
               />
               <StatTile
                 label="平均レスポンス時間"
-                value={summary.averageLatencyMs != null ? `${(summary.averageLatencyMs / 1000).toFixed(1)}秒` : '-'}
+                value={(() => {
+                  const ms = averageLatencyMs(stats)
+                  return ms != null ? `${(ms / 1000).toFixed(1)}秒` : '-'
+                })()}
               />
             </div>
 
-            {models.length > 0 && (
+            {Object.keys(stats.models).length > 0 && (
               <section className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold">モデル別のコスト・速度比較</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {models.map((m) => (
-                    <div key={`${m.provider}:${m.model}`} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
-                      <p className="text-sm font-semibold">{m.model}</p>
+                  {Object.entries(stats.models).map(([model, m]) => (
+                    <div key={model} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+                      <p className="text-sm font-semibold">{model}</p>
                       <p className="mt-1 text-xs text-foreground/50">利用件数 {m.requestCount.toLocaleString('ja-JP')}件</p>
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div>
@@ -89,7 +93,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
                         <div>
                           <p className="text-xs text-foreground/60">平均レスポンス時間</p>
                           <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                            {m.averageLatencyMs != null ? `${(m.averageLatencyMs / 1000).toFixed(1)}秒` : '-'}
+                            {(() => {
+                              const ms = averageLatencyMs(m)
+                              return ms != null ? `${(ms / 1000).toFixed(1)}秒` : '-'
+                            })()}
                           </p>
                         </div>
                       </div>

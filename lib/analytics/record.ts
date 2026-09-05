@@ -8,7 +8,6 @@ import { addRequest, attachClassification } from './store'
 import { estimateCost } from './pricing'
 
 type RecordInput = {
-  sessionId: string
   llamaUrl: string
   model: string
   promptText: string
@@ -27,11 +26,8 @@ export async function recordAndClassify(input: RecordInput): Promise<void> {
 
   addRequest({
     id,
-    sessionId: input.sessionId,
     provider: 'local-llama-cpp',
     model: input.model,
-    promptMasked,
-    responseMasked,
     inputTokens: input.usage?.inputTokens,
     outputTokens: input.usage?.outputTokens,
     estimatedCost: estimateCost(input.model, input.usage?.inputTokens, input.usage?.outputTokens),

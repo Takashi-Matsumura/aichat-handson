@@ -9,6 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import Link from 'next/link'
 import HandsonPanel from './components/HandsonPanel'
 import SourcesPanel, { type SourceRef } from './components/SourcesPanel'
+import { recordPersonalStat } from '@/lib/personal-stats'
 
 type ModelInfo = { model: string | null; label: string | null; online: boolean; ctxSize: number | null }
 
@@ -38,6 +39,7 @@ type ChatStreamPayload = {
   choices?: { delta?: { content?: string } }[]
   error?: string
   handson_sources?: SourceRef[]
+  handson_stats?: { model: string; inputTokens: number; outputTokens: number; estimatedCost: number; latencyMs: number }
 }
 
 // /analytics などへ画面遷移して戻ってきても会話が消えないよう、タブ内で保持する(sessionStorage)。
@@ -373,6 +375,11 @@ export default function Home() {
 
         if (parsed.handson_sources) {
           update(msg => ({ ...msg, sources: parsed.handson_sources, showSources: false }))
+          continue
+        }
+
+        if (parsed.handson_stats) {
+          recordPersonalStat(parsed.handson_stats)
           continue
         }
 

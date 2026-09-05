@@ -26,9 +26,12 @@ services:
       RAG_EMBED_TIMEOUT_MS:       ${RAG_EMBED_TIMEOUT_MS:-20000}
       RAG_EMBED_QUERY_PREFIX:     ${RAG_EMBED_QUERY_PREFIX:-}
       RAG_EMBED_DOC_PREFIX:       ${RAG_EMBED_DOC_PREFIX:-}
+      ANALYTICS_DB_PATH:          ${ANALYTICS_DB_PATH:-./data/analytics.db}
     volumes:
       # 講師が研修当日に資料(.md/.txt)を置くフォルダ。未マウントならRAGは無効のまま動作する。
       - ./knowledge:/app/knowledge:ro
+      # 利用統計(SQLite)。マウントしない場合、コンテナ再作成で統計は失われる。
+      - ./data:/app/data
     networks:
       - aichat-net
     extra_hosts:
