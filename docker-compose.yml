@@ -27,10 +27,12 @@ services:
       RAG_EMBED_QUERY_PREFIX:     ${RAG_EMBED_QUERY_PREFIX:-}
       RAG_EMBED_DOC_PREFIX:       ${RAG_EMBED_DOC_PREFIX:-}
       ANALYTICS_DB_PATH:          ${ANALYTICS_DB_PATH:-./data/analytics.db}
+      PRESENTER_PROMPTS_PATH:     ${PRESENTER_PROMPTS_PATH:-./data/presenter-prompts.json}
     volumes:
       # 講師が研修当日に資料(.md/.txt)を置くフォルダ。未マウントならRAGは無効のまま動作する。
       - ./knowledge:/app/knowledge:ro
-      # 利用統計(SQLite)。マウントしない場合、コンテナ再作成で統計は失われる。
+      # 利用統計(SQLite)とプロンプト配信リスト(JSON)。マウントしない場合、
+      # コンテナ再作成でどちらも失われる。
       - ./data:/app/data
     networks:
       - aichat-net

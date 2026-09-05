@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { AdminStatsPanel } from '@/app/components/dashboard/AdminStatsPanel'
+import { PromptBroadcastPanel } from '@/app/components/presenter/PromptBroadcastPanel'
 
 type RagStatus = {
   fileCount: number
@@ -20,7 +21,7 @@ type SourceFile = {
   size: number
 }
 
-type Tab = 'access' | 'rag' | 'stats'
+type Tab = 'access' | 'rag' | 'prompts' | 'stats'
 
 export default function PresenterPage() {
   type ModelInfo = { model: string | null; ctxSize: number | null; parallel: number | null; label: string | null }
@@ -278,7 +279,7 @@ export default function PresenterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex flex-col items-center px-6 py-10 relative">
-      <div className={`w-full flex flex-col items-center gap-8 mx-auto transition-[max-width] ${tab === 'stats' ? 'max-w-4xl' : tab === 'rag' ? 'max-w-2xl' : 'max-w-md'}`}>
+      <div className={`w-full flex flex-col items-center gap-8 mx-auto transition-[max-width] ${tab === 'stats' ? 'max-w-4xl' : tab === 'rag' || tab === 'prompts' ? 'max-w-2xl' : 'max-w-md'}`}>
 
         {/* ヘッダー */}
         <div className="text-center">
@@ -317,6 +318,17 @@ export default function PresenterPage() {
             }`}
           >
             RAGソース
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('prompts')}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              tab === 'prompts'
+                ? 'bg-ocean-700 text-white'
+                : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+            }`}
+          >
+            プロンプト配信
           </button>
           <button
             type="button"
@@ -693,6 +705,8 @@ export default function PresenterPage() {
         </div>
         </>
         )}
+
+        {tab === 'prompts' && <PromptBroadcastPanel />}
 
         {tab === 'stats' && <AdminStatsPanel />}
       </div>

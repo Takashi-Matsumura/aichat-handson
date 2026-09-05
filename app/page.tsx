@@ -9,6 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import Link from 'next/link'
 import HandsonPanel from './components/HandsonPanel'
 import SourcesPanel, { type SourceRef } from './components/SourcesPanel'
+import PromptBroadcastModal from './components/PromptBroadcastModal'
 import { recordPersonalStat } from '@/lib/personal-stats'
 
 type ModelInfo = { model: string | null; label: string | null; online: boolean; ctxSize: number | null }
@@ -108,6 +109,9 @@ export default function Home() {
   const wasLoadingRef = useRef(false)
   const [streamingIndex, setStreamingIndex] = useState<number | null>(null)
   const [elapsedSec, setElapsedSec] = useState(0)
+  // 講師からのプロンプト配信(/presenter「プロンプト配信」タブ)。SSEで受け取った最新1件のみ保持する。
+  const [broadcast, setBroadcast] = useState<{ broadcastId: string; title: string; body: string } | null>(null)
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -232,6 +236,49 @@ export default function Home() {
     }
     fetchModelLock()
   }, [])
+
+  // 講師からのプロンプト配信をリアルタイムに受け取る。EventSourceはブラウザが自動再接続する
+  // ため、会場のWi-Fiが不安定でも復帰する。接続直後にサーバーが現在の状態を必ず1回送るので、
+  // 途中参加時も最新の配信状態に揃う。
+  useEffect(() => {
+    const es = new EventSource('/api/broadcast/stream')
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        const next = data.broadcast ?? null
+        setBroadcast(next)
+        if (!next) {
+          setBroadcastModalOpen(false)
+          return
+        }
+        // 既にこの配信を閉じたことがある(タブ内で既読)場合は自動で開き直さない。
+        // それでも見返せるよう、入力欄付近の再表示ボタンは別途出す。
+        const dismissedId = sessionStorage.getItem('handson-broadcast-dismissed')
+        setBroadcastModalOpen(dismissedId !== next.broadcastId)
+      } catch {
+        // 壊れたデータは無視する
+      }
+    }
+    return () => es.close()
+  }, [])
+
+  function closeBroadcastModal() {
+    setBroadcastModalOpen(false)
+    if (broadcast) {
+      try {
+        sessionStorage.setItem('handson-broadcast-dismissed', broadcast.broadcastId)
+      } catch {
+        // 容量超過などで保存できなくても、モーダルの再表示ボタンで代替できるため無視する
+      }
+    }
+  }
+
+  // プロンプトを入力欄へ反映する共通処理。サンプルプロンプト・ハンズオンテキスト・
+  // 講師からの配信プロンプトの3箇所から呼ぶ。
+  function applyPromptText(text: string) {
+    setInput(text)
+    inputRef.current?.focus()
+  }
 
   function switchModel(n: 1 | 2) {
     if (n === 1 && !model1Enabled) return // 管理者による利用停止中
@@ -923,6 +970,19 @@ export default function Home() {
             <div ref={bottomRef} />
           </div>
 
+          {/* 配信中のプロンプトをモーダルで閉じた後も見返せるようにする再表示ボタン */}
+          {broadcast && !broadcastModalOpen && (
+            <div className={`flex ${isEmpty ? 'w-full max-w-2xl mx-auto' : ''} justify-center px-3 pb-2`}>
+              <button
+                type="button"
+                onClick={() => setBroadcastModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium bg-ocean-100 text-ocean-700 hover:bg-ocean-200 dark:bg-ocean-900/30 dark:text-ocean-400 dark:hover:bg-ocean-900/50 transition-colors shadow-sm"
+              >
+                📣 講師からのプロンプトを見る
+              </button>
+            </div>
+          )}
+
           <form
             onSubmit={handleSubmit}
             className={`bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 px-3 pt-2 pb-3 ${
@@ -1066,7 +1126,7 @@ export default function Home() {
                 <button
                   key={s.label}
                   type="button"
-                  onClick={() => { setInput(s.prompt); inputRef.current?.focus() }}
+                  onClick={() => applyPromptText(s.prompt)}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-gray-600 dark:text-zinc-300 hover:border-ocean-300 hover:text-ocean-700 dark:hover:border-ocean-600 dark:hover:text-ocean-400 transition-colors shadow-sm"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
@@ -1094,10 +1154,7 @@ export default function Home() {
           isFull={panelFull}
           onSetFull={setPanelFull}
           onClose={togglePanel}
-          onUsePrompt={(text) => {
-            setInput(text)
-            inputRef.current?.focus()
-          }}
+          onUsePrompt={applyPromptText}
           onPageChange={() => {
             // 「AIの推論とエージェント」（gemma-4-12b使用）を一時非表示にしたため、
             // ハンズオン中は常に gemma-3-4b（model 2）を使う。
@@ -1105,6 +1162,14 @@ export default function Home() {
           }}
         />
       </div>
+
+      <PromptBroadcastModal
+        isOpen={broadcastModalOpen}
+        title={broadcast?.title ?? ''}
+        body={broadcast?.body ?? ''}
+        onClose={closeBroadcastModal}
+        onUsePrompt={applyPromptText}
+      />
 
       <footer className="flex-none bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700 px-4 py-2 flex items-center justify-between text-xs text-gray-400 dark:text-zinc-500">
         <span>© 2026 MatsBACCANO</span>
