@@ -27,8 +27,6 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public                    ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
-# instrumentation.ts が動的 import する undici は standalone トレースに含まれないため明示コピー
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/undici ./node_modules/undici
 
 USER nextjs
 EXPOSE 3000

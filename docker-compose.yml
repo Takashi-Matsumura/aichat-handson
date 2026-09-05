@@ -7,19 +7,34 @@ services:
     ports:
       - "8061:3000"
     environment:
-      LLAMA_API_URL:         ${LLAMA_API_URL:-http://host.docker.internal:8080}
-      LLAMA_API_URL_2:       ${LLAMA_API_URL_2:-http://host.docker.internal:8081}
-      LLAMA_MODEL:           ${LLAMA_MODEL:-gemma4}
-      LLAMA_MODEL_LABEL_1:   ${LLAMA_MODEL_LABEL_1:-}
-      LLAMA_MODEL_LABEL_2:   ${LLAMA_MODEL_LABEL_2:-}
+      LLAMA_API_URL:              ${LLAMA_API_URL:-http://host.docker.internal:8080}
+      LLAMA_API_URL_2:            ${LLAMA_API_URL_2:-http://host.docker.internal:8081}
+      LLAMA_MODEL:                ${LLAMA_MODEL:-gemma4}
+      LLAMA_MODEL_LABEL_1:        ${LLAMA_MODEL_LABEL_1:-}
+      LLAMA_MODEL_LABEL_2:        ${LLAMA_MODEL_LABEL_2:-}
+      LLAMA_MAX_TOKENS:           ${LLAMA_MAX_TOKENS:-2048}
+      LLAMA_CLASSIFY_MAX_TOKENS:  ${LLAMA_CLASSIFY_MAX_TOKENS:-512}
       # RAG（社内資料を使った回答）。埋め込み用のllama-serverは別途起動しておくこと。
-      RAG_EMBED_API_URL:     ${RAG_EMBED_API_URL:-http://host.docker.internal:8082}
-      RAG_EMBED_MODEL:       ${RAG_EMBED_MODEL:-embedding}
+      RAG_EMBED_API_URL:          ${RAG_EMBED_API_URL:-http://host.docker.internal:8082}
+      RAG_EMBED_MODEL:            ${RAG_EMBED_MODEL:-embedding}
+      RAG_KNOWLEDGE_DIR:          ${RAG_KNOWLEDGE_DIR:-./knowledge}
+      RAG_TOP_K:                  ${RAG_TOP_K:-4}
+      RAG_CHUNK_SIZE:             ${RAG_CHUNK_SIZE:-500}
+      RAG_CHUNK_OVERLAP:          ${RAG_CHUNK_OVERLAP:-100}
+      RAG_MIN_SCORE:              ${RAG_MIN_SCORE:-0.3}
+      RAG_EMBED_BATCH_SIZE:       ${RAG_EMBED_BATCH_SIZE:-16}
+      RAG_EMBED_TIMEOUT_MS:       ${RAG_EMBED_TIMEOUT_MS:-20000}
+      RAG_EMBED_QUERY_PREFIX:     ${RAG_EMBED_QUERY_PREFIX:-}
+      RAG_EMBED_DOC_PREFIX:       ${RAG_EMBED_DOC_PREFIX:-}
     volumes:
       # 講師が研修当日に資料(.md/.txt)を置くフォルダ。未マウントならRAGは無効のまま動作する。
       - ./knowledge:/app/knowledge:ro
     networks:
       - aichat-net
+    extra_hosts:
+      # host.docker.internal はDocker Desktop(Mac/Windows)では標準で使えるが、
+      # Linux(Docker Engine)では明示しないと解決できないため追加しておく。
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   # ── llama.cpp（コンテナ化する場合）────────────────────────────────────────
