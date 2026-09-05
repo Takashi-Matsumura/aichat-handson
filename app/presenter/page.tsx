@@ -122,7 +122,7 @@ export default function PresenterPage() {
           </button>
         </div>
 
-        {/* モデル情報 */}
+        {/* モデル情報（gemma-4-12bのみ、利用可否のトグルをあわせて表示） */}
         <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-3 shadow-sm flex flex-col gap-3">
           <span className="text-xs text-gray-400 dark:text-zinc-500">使用モデル</span>
           {modelInfos[1] === null && modelInfos[2] === null ? (
@@ -138,7 +138,7 @@ export default function PresenterPage() {
                     <path d="M9 18h6"/>
                     <path d="M10 22h4"/>
                   </svg>
-                  <div className="flex flex-col min-w-0 gap-0.5">
+                  <div className="flex flex-col min-w-0 gap-0.5 flex-1">
                     {info.label && (
                       <span className="text-xs text-ocean-700 dark:text-ocean-400 font-medium">{info.label}</span>
                     )}
@@ -153,39 +153,32 @@ export default function PresenterPage() {
                       </span>
                     )}
                   </div>
+                  {n === 1 && (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={model1Enabled === true}
+                      aria-label="gemma-4-12b を受講者に利用させる"
+                      title={model1Enabled ? '受講者が利用可能（クリックで一時停止）' : '受講者は利用不可（クリックで再開）'}
+                      onClick={toggleModel1}
+                      disabled={model1Enabled === null || updatingLock}
+                      className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        model1Enabled ? 'bg-ocean-700' : 'bg-gray-300 dark:bg-zinc-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          model1Enabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  )}
                 </div>
               )
             })
           )}
-        </div>
-
-        {/* モデル利用制御（管理者設定） */}
-        <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-3 shadow-sm flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <span className="text-xs text-gray-400 dark:text-zinc-500 block">モデル利用制御（管理者設定）</span>
-              <span className="text-sm text-gray-700 dark:text-zinc-200">gemma-4-12b を受講者に利用させる</span>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={model1Enabled === true}
-              aria-label="gemma-4-12b を受講者に利用させる"
-              onClick={toggleModel1}
-              disabled={model1Enabled === null || updatingLock}
-              className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                model1Enabled ? 'bg-ocean-700' : 'bg-gray-300 dark:bg-zinc-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                  model1Enabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 dark:text-zinc-500">
-            大人数のハンズオンで負荷をgemma-3-4bに集中させるための一時的な仕組みです。OFFにすると、受講者のチャット画面でgemma-4-12bが選択できなくなります。恒久的に使わない場合は、llama-server（ポート8080側）自体の停止を推奨します。
+          <p className="text-[11px] text-gray-400 dark:text-zinc-500 pt-1 border-t border-gray-100 dark:border-zinc-700">
+            gemma-4-12bは大人数開催時の負荷対策として一時停止できます（恒久的に使わない場合はllama-server自体の停止を推奨）
           </p>
         </div>
       </div>
