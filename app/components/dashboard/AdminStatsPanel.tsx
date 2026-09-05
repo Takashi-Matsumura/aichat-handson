@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CLASSIFICATION_DIMENSION_COLUMNS } from '@/lib/analytics/analytics'
-import type { Summary, ModelStat, CandidateItem } from '@/lib/analytics/analytics'
+import { CLASSIFICATION_DIMENSION_COLUMNS } from '@/lib/analytics/types'
+import type { Summary, ModelStat } from '@/lib/analytics/types'
 import { MODEL_PRICING, USD_TO_JPY_RATE, formatJPY } from '@/lib/analytics/pricing'
 import { StatTile } from './StatTile'
 import { BarChart } from './BarChart'
 import { TrendChart } from './TrendChart'
-import { CandidateList } from './CandidateList'
 import { ModelStatsTable } from './ModelStatsTable'
 import { CostFlipTile } from './CostFlipTile'
 
@@ -19,8 +18,6 @@ type AnalyticsResponse = {
   summary: Summary
   categories: Record<string, { value: string; count: number }[]>
   models: ModelStat[]
-  ragCandidates: { items: CandidateItem[]; total: number }
-  automationCandidates: { items: CandidateItem[]; total: number }
 }
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -69,7 +66,7 @@ export function AdminStatsPanel() {
     return <span className="text-gray-300 dark:text-zinc-600 text-sm animate-pulse">取得中...</span>
   }
 
-  const { summary, categories, models, ragCandidates, automationCandidates } = data
+  const { summary, categories, models } = data
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -126,23 +123,6 @@ export function AdminStatsPanel() {
           ))}
         </div>
       </section>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-zinc-100">RAG候補</h2>
-          <p className="mb-2 text-xs text-gray-400 dark:text-zinc-500">
-            社内ドキュメント整備によって回答品質が上がりそうな質問（該当 {ragCandidates.total} 件）
-          </p>
-          <CandidateList items={ragCandidates.items} />
-        </section>
-        <section className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold text-gray-800 dark:text-zinc-100">自動化候補</h2>
-          <p className="mb-2 text-xs text-gray-400 dark:text-zinc-500">
-            自動化可能性が「高」と判定された質問（該当 {automationCandidates.total} 件）
-          </p>
-          <CandidateList items={automationCandidates.items} />
-        </section>
-      </div>
     </div>
   )
 }

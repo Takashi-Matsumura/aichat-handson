@@ -1,5 +1,7 @@
 import { NextRequest, after } from 'next/server'
 import { recordAndClassify } from '@/lib/analytics/record'
+import { registerActiveSession } from '@/lib/analytics/active-sessions'
+import { estimateCost } from '@/lib/analytics/pricing'
 import { isModel1Enabled } from '@/lib/settings/store'
 import { retrieve } from '@/lib/rag/search'
 import { buildContextBlock, toSourceRefs, type SourceRef } from '@/lib/rag/prompt'
@@ -56,6 +58,7 @@ export async function POST(request: NextRequest) {
   }
   const LLAMA_URL = LLAMA_URLS[n]
   const { sid, setCookieHeader } = getOrCreateSessionId(request)
+  registerActiveSession(sid)
   const promptText = lastUserMessageContent(messages)
 
   // RAG: 例外を投げない設計(retrieve内部でtry/catch済み)なので、埋め込みサーバーが
@@ -111,12 +114,12 @@ export async function POST(request: NextRequest) {
   // クライアント側のストリーミング体感は変わらない。
   const [toClient, toSniff] = upstream.body!.tee()
   const startedAt = Date.now()
+  const analyticsModel = ANALYTICS_MODEL_NAMES[n] ?? MODEL
   after(async () => {
     const { text, usage } = await drainAssistantStream(toSniff)
     await recordAndClassify({
-      sessionId: sid,
       llamaUrl: LLAMA_URL,
-      model: ANALYTICS_MODEL_NAMES[n] ?? MODEL,
+      model: analyticsModel,
       promptText,
       responseText: text,
       latencyMs: Date.now() - startedAt,
@@ -130,7 +133,8 @@ export async function POST(request: NextRequest) {
     'X-Accel-Buffering': 'no',
   }
   if (setCookieHeader) headers['Set-Cookie'] = setCookieHeader
-  const body = rag === true ? prependSourcesEvent(toClient, sources) : toClient
+  let body = rag === true ? prependSourcesEvent(toClient, sources) : toClient
+  body = appendStatsEvent(body, { model: analyticsModel, startedAt })
   return new Response(body, { headers })
 }
 
@@ -152,6 +156,23 @@ function prependSourcesEvent(stream: ReadableStream<Uint8Array>, sources: Source
   )
 }
 
+type OpenAIStreamChunk = {
+  choices?: { delta?: { content?: string } }[]
+  usage?: { prompt_tokens?: number; completion_tokens?: number }
+}
+
+// llama.cpp の OpenAI互換SSEの1行("data: {...}")をパースする。[DONE]や不正なJSONはnullを返す。
+function parseSSELine(line: string): OpenAIStreamChunk | null {
+  if (!line.startsWith('data: ')) return null
+  const payload = line.slice(6).trim()
+  if (payload === '[DONE]') return null
+  try {
+    return JSON.parse(payload)
+  } catch {
+    return null
+  }
+}
+
 // ストリームを読み切り、assistantの応答全文とトークン使用量を回収する。
 // クライアントへの配信には使わない（利用状況分析専用）。
 async function drainAssistantStream(
@@ -171,18 +192,8 @@ async function drainAssistantStream(
     buffer = lines.pop() ?? ''
 
     for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      const payload = line.slice(6).trim()
-      if (payload === '[DONE]') continue
-      let parsed: {
-        choices?: { delta?: { content?: string } }[]
-        usage?: { prompt_tokens?: number; completion_tokens?: number }
-      }
-      try {
-        parsed = JSON.parse(payload)
-      } catch {
-        continue
-      }
+      const parsed = parseSSELine(line)
+      if (!parsed) continue
       const delta = parsed.choices?.[0]?.delta?.content
       if (delta) text += delta
       if (parsed.usage) {
@@ -192,4 +203,44 @@ async function drainAssistantStream(
   }
 
   return { text, usage }
+}
+
+// クライアント向けストリームの末尾に、個人統計(ブラウザ側で集計・保持)用の
+// 1件分の利用実績(トークン数・推定コスト・レイテンシ)を data 行として追加する。
+// サーバー側はこの値を保存しない。クライアントが受け取って localStorage に積み上げる。
+function appendStatsEvent(
+  stream: ReadableStream<Uint8Array>,
+  meta: { model: string; startedAt: number },
+): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder()
+  const encoder = new TextEncoder()
+  let buffer = ''
+  let usage: { inputTokens?: number; outputTokens?: number } | undefined
+
+  return stream.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        controller.enqueue(chunk)
+        buffer += decoder.decode(chunk, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          const parsed = parseSSELine(line)
+          if (parsed?.usage) {
+            usage = { inputTokens: parsed.usage.prompt_tokens, outputTokens: parsed.usage.completion_tokens }
+          }
+        }
+      },
+      flush(controller) {
+        const stats = {
+          model: meta.model,
+          inputTokens: usage?.inputTokens ?? 0,
+          outputTokens: usage?.outputTokens ?? 0,
+          estimatedCost: estimateCost(meta.model, usage?.inputTokens, usage?.outputTokens),
+          latencyMs: Date.now() - meta.startedAt,
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ handson_stats: stats })}\n\n`))
+      },
+    }),
+  )
 }

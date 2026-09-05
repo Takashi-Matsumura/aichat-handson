@@ -3,19 +3,10 @@
 // /presenter が client component のため、Server Component から直接呼んでいる
 // lib/analytics/analytics.ts の集計をこのルート経由で返す。
 
-import {
-  getSummary,
-  getCategoryBreakdown,
-  getModelStats,
-  getRagCandidates,
-  getAutomationCandidates,
-} from '@/lib/analytics/analytics'
+import { getSummary, getCategoryBreakdown, getModelStats } from '@/lib/analytics/analytics'
 import { resolveDateRange, toURLSearchParams } from '@/lib/analytics/analytics-query'
 
 export const dynamic = 'force-dynamic'
-
-// 候補一覧はページングUIを持たず、直近N件のみ返す(ハンズオン用の簡易表示)。
-const CANDIDATE_PAGE_SIZE = 10
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -27,12 +18,10 @@ export async function GET(request: Request) {
     return Response.json({ error: err instanceof Error ? err.message : '日付範囲が不正です' }, { status: 400 })
   }
 
-  const [summary, categories, models, ragCandidates, automationCandidates] = await Promise.all([
+  const [summary, categories, models] = await Promise.all([
     getSummary(range),
     getCategoryBreakdown(range),
     getModelStats(range),
-    getRagCandidates(range, 1, CANDIDATE_PAGE_SIZE),
-    getAutomationCandidates(range, 1, CANDIDATE_PAGE_SIZE),
   ])
 
   return Response.json({
@@ -41,7 +30,5 @@ export async function GET(request: Request) {
     summary,
     categories,
     models,
-    ragCandidates,
-    automationCandidates,
   })
 }

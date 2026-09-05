@@ -23,14 +23,8 @@ export function resolveDateRange(searchParams: URLSearchParams): DateRange {
   return { from, to };
 }
 
-export function resolvePagination(searchParams: URLSearchParams): { page: number; pageSize: number } {
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20") || 20));
-  return { page, pageSize };
-}
-
 // Next.js のページ props で渡される searchParams (プレーンなキー/値オブジェクト) を
-// resolveDateRange / resolvePagination が期待する URLSearchParams に変換する。
+// resolveDateRange が期待する URLSearchParams に変換する。
 export function toURLSearchParams(
   sp: Record<string, string | string[] | undefined>,
 ): URLSearchParams {
