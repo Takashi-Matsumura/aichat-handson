@@ -32,3 +32,17 @@ export function estimateCost(model: string, inputTokens?: number, outputTokens?:
   const outputCost = ((outputTokens ?? 0) / 1_000_000) * pricing.outputPer1M
   return inputCost + outputCost
 }
+
+// 円換算の参考レート(USD→JPY)。実際の為替相場は日々変動するが、このアプリのコスト自体が
+// 教材用の概算値であるのと同様、ハンズオン中は固定値として扱う。
+export const USD_TO_JPY_RATE = 150
+
+/** USD金額を円に換算する(表示用)。集計・保存は常にUSDのまま行う。 */
+export function toJPY(usd: number): number {
+  return usd * USD_TO_JPY_RATE
+}
+
+/** 推定コスト(USD)を「¥0.060」のような表示用文字列に変換する。 */
+export function formatJPY(usd: number): string {
+  return `¥${toJPY(usd).toFixed(3)}`
+}

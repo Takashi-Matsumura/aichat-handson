@@ -3,11 +3,15 @@
 import { useEffect, useState } from 'react'
 import { CLASSIFICATION_DIMENSION_COLUMNS } from '@/lib/analytics/analytics'
 import type { Summary, ModelStat, CandidateItem } from '@/lib/analytics/analytics'
+import { MODEL_PRICING, USD_TO_JPY_RATE, formatJPY } from '@/lib/analytics/pricing'
 import { StatTile } from './StatTile'
 import { BarChart } from './BarChart'
 import { TrendChart } from './TrendChart'
 import { CandidateList } from './CandidateList'
 import { ModelStatsTable } from './ModelStatsTable'
+import { CostFlipTile } from './CostFlipTile'
+
+const MODEL_PRICE_ENTRIES = Object.entries(MODEL_PRICING).map(([model, p]) => ({ model, ...p }))
 
 type AnalyticsResponse = {
   from: string
@@ -78,10 +82,12 @@ export function AdminStatsPanel() {
         <StatTile label="アクティブ利用セッション数" value={summary.activeUserCount.toLocaleString('ja-JP')} />
         <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
         <StatTile label="出力トークン" value={summary.outputTokens.toLocaleString('ja-JP')} />
-        <StatTile
+        <CostFlipTile
           label="推定コスト（クラウドAI換算）"
-          value={`$${summary.estimatedCost.toFixed(4)}`}
+          value={formatJPY(summary.estimatedCost)}
           hint="実際の課金はありません。同規模モデルをクラウドAPIで使った場合の参考値です"
+          exchangeRate={USD_TO_JPY_RATE}
+          prices={MODEL_PRICE_ENTRIES}
         />
         <StatTile
           label="平均レスポンス時間"

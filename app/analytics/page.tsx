@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { getSummary, getModelStats } from '@/lib/analytics/analytics'
 import { resolveDateRange, toURLSearchParams } from '@/lib/analytics/analytics-query'
+import { MODEL_PRICING, USD_TO_JPY_RATE, formatJPY } from '@/lib/analytics/pricing'
 import { StatTile } from '@/app/components/dashboard/StatTile'
+import { CostFlipTile } from '@/app/components/dashboard/CostFlipTile'
+
+const MODEL_PRICE_ENTRIES = Object.entries(MODEL_PRICING).map(([model, p]) => ({ model, ...p }))
 
 // インメモリストアの最新状態を都度反映するため、キャッシュせず常に動的にレンダリングする。
 export const dynamic = 'force-dynamic'
@@ -54,10 +58,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
               <StatTile label="質問した回数" value={summary.requestCount.toLocaleString('ja-JP')} />
               <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
               <StatTile label="出力トークン" value={summary.outputTokens.toLocaleString('ja-JP')} />
-              <StatTile
+              <CostFlipTile
                 label="推定コスト（クラウドAI換算）"
-                value={`$${summary.estimatedCost.toFixed(4)}`}
+                value={formatJPY(summary.estimatedCost)}
                 hint="実際の課金はありません。同規模モデルをクラウドAPIで使った場合の参考値です"
+                exchangeRate={USD_TO_JPY_RATE}
+                prices={MODEL_PRICE_ENTRIES}
               />
               <StatTile
                 label="平均レスポンス時間"
@@ -77,7 +83,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
                         <div>
                           <p className="text-xs text-foreground/60">1件あたりコスト</p>
                           <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                            ${(m.estimatedCost / m.requestCount).toFixed(5)}
+                            {formatJPY(m.estimatedCost / m.requestCount)}
                           </p>
                         </div>
                         <div>
