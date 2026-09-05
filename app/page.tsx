@@ -40,6 +40,9 @@ type ChatStreamPayload = {
   handson_sources?: SourceRef[]
 }
 
+// /analytics などへ画面遷移して戻ってきても会話が消えないよう、タブ内で保持する(sessionStorage)。
+const MESSAGES_STORAGE_KEY = 'handson-chat-messages'
+
 const TOKEN_COLORS = [
   'bg-rose-100 dark:bg-rose-900/40',
   'bg-amber-100 dark:bg-amber-900/40',
@@ -96,6 +99,7 @@ export default function Home() {
   })
   const [usedTokens, setUsedTokens] = useState(0)
   const tokenizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const messagesSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -105,6 +109,24 @@ export default function Home() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // 会話をタブ内(sessionStorage)に保存し、/analytics 等へ移動して戻ってきても復元できるようにする。
+  // ストリーミング中は1トークンごとに messages が更新されるため、都度書き込まずデバウンスする。
+  useEffect(() => {
+    if (messagesSaveTimerRef.current) clearTimeout(messagesSaveTimerRef.current)
+    messagesSaveTimerRef.current = setTimeout(() => {
+      try {
+        if (messages.length > 0) {
+          sessionStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages))
+        } else {
+          sessionStorage.removeItem(MESSAGES_STORAGE_KEY)
+        }
+      } catch {
+        // 容量超過などで保存できなくても、会話自体には支障がないため無視する
+      }
+    }, 300)
+    return () => { if (messagesSaveTimerRef.current) clearTimeout(messagesSaveTimerRef.current) }
   }, [messages])
 
   // 生成中の経過秒数を計測する（応答が長時間返らない場合にユーザーへ知らせるため）
@@ -145,6 +167,16 @@ export default function Home() {
   }, [messages, loading, selectedModel])
 
   useEffect(() => {
+    try {
+      const savedMessages = sessionStorage.getItem(MESSAGES_STORAGE_KEY)
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages)
+        if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed)
+      }
+    } catch {
+      // 壊れたデータは無視して空の会話から始める
+    }
+
     setPanelOpen(localStorage.getItem('handson-panel-open') === 'true')
     setThinking(localStorage.getItem('thinking-mode') === 'true')
     setRagMode(localStorage.getItem('rag-mode') === 'true')
