@@ -1,53 +1,29 @@
 import Link from 'next/link'
-import {
-  getSummary,
-  getCategoryBreakdown,
-  getModelStats,
-  getRagCandidates,
-  getAutomationCandidates,
-  CLASSIFICATION_DIMENSION_COLUMNS,
-} from '@/lib/analytics/analytics'
+import { cookies } from 'next/headers'
+import { getSummary, getModelStats } from '@/lib/analytics/analytics'
 import { resolveDateRange, toURLSearchParams } from '@/lib/analytics/analytics-query'
 import { StatTile } from '@/app/components/dashboard/StatTile'
-import { BarChart } from '@/app/components/dashboard/BarChart'
-import { TrendChart } from '@/app/components/dashboard/TrendChart'
-import { CandidateList } from '@/app/components/dashboard/CandidateList'
 
 // インメモリストアの最新状態を都度反映するため、キャッシュせず常に動的にレンダリングする。
 export const dynamic = 'force-dynamic'
 
+// チャットAPIが発行するセッションCookie。app/api/chat/route.ts の SESSION_COOKIE と同じ値。
+const SESSION_COOKIE = 'handson_sid'
+
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
-
-const DIMENSION_LABELS: Record<string, string> = {
-  business_category: '業務カテゴリ',
-  usage_purpose: '利用目的',
-  task_type: 'タスク種別',
-  improvement_type: '改善視点',
-  automation_potential: '自動化可能性',
-  sensitivity_level: '機密度',
-}
-
-// 候補一覧はページングUIを持たず、直近N件のみ表示する(ハンズオン用の簡易表示)。
-const CANDIDATE_PAGE_SIZE = 10
-
-function formatDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
-}
 
 export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParams }) {
   const range = resolveDateRange(toURLSearchParams(await searchParams))
+  const cookieStore = await cookies()
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
 
-  const [summary, categories, models, ragCandidates, automationCandidates] = await Promise.all([
-    getSummary(range),
-    getCategoryBreakdown(range),
-    getModelStats(range),
-    getRagCandidates(range, 1, CANDIDATE_PAGE_SIZE),
-    getAutomationCandidates(range, 1, CANDIDATE_PAGE_SIZE),
-  ])
+  const [summary, models] = sessionId
+    ? await Promise.all([getSummary(range, sessionId), getModelStats(range, sessionId)])
+    : [null, []]
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <div className="flex items-start gap-3">
           <Link
             href="/"
@@ -61,106 +37,67 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             </svg>
           </Link>
           <div>
-            <h1 className="text-xl font-bold">AI利用状況ダッシュボード</h1>
+            <h1 className="text-xl font-bold">AI利用状況（あなたの利用分）</h1>
             <p className="mt-1 text-xs text-foreground/50">
-              期間: {formatDate(range.from)} 〜 {formatDate(range.to)} ・ ログインは無く、接続セッション単位で匿名集計しています
+              この画面はあなたの接続セッション分だけを集計しています。会場全体の統計ではありません。
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          <StatTile label="利用件数" value={summary.requestCount.toLocaleString('ja-JP')} />
-          <StatTile label="アクティブ利用セッション数" value={summary.activeUserCount.toLocaleString('ja-JP')} />
-          <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
-          <StatTile label="出力トークン" value={summary.outputTokens.toLocaleString('ja-JP')} />
-          <StatTile
-            label="推定コスト（クラウドAI換算）"
-            value={`$${summary.estimatedCost.toFixed(4)}`}
-            hint="実際の課金はありません。同規模モデルをクラウドAPIで使った場合の参考値です"
-          />
-          <StatTile
-            label="平均レスポンス時間"
-            value={summary.averageLatencyMs != null ? `${(summary.averageLatencyMs / 1000).toFixed(1)}秒` : '-'}
-          />
-          <StatTile label="エラー率" value={`${(summary.errorRate * 100).toFixed(1)}%`} />
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-black/10 p-4 dark:border-white/15">
-            <h3 className="mb-3 text-sm font-semibold">日別利用件数</h3>
-            <TrendChart data={summary.dailyCounts.map((d) => ({ label: d.date, value: d.count }))} />
-          </section>
-          <section className="rounded-xl border border-black/10 p-4 dark:border-white/15">
-            <h3 className="mb-3 text-sm font-semibold">月別利用件数</h3>
-            <BarChart items={summary.monthlyCounts.map((m) => ({ label: m.month, value: m.count }))} />
-          </section>
-        </div>
-
-        <section className="rounded-xl border border-black/10 p-4 dark:border-white/15">
-          <h3 className="mb-3 text-sm font-semibold">モデル別利用状況</h3>
-          <BarChart items={models.map((m) => ({ label: `${m.provider}/${m.model}`, value: m.requestCount }))} />
-          {models.length > 0 && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-black/10 text-xs text-foreground/50 dark:border-white/15">
-                    <th className="py-2 pr-4">プロバイダー</th>
-                    <th className="py-2 pr-4">モデル</th>
-                    <th className="py-2 pr-4 text-right">利用件数</th>
-                    <th className="py-2 pr-4 text-right">入力トークン</th>
-                    <th className="py-2 pr-4 text-right">出力トークン</th>
-                    <th className="py-2 pr-4 text-right">平均レスポンス</th>
-                    <th className="py-2 pr-4 text-right">エラー件数</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {models.map((m) => (
-                    <tr key={`${m.provider}:${m.model}`} className="border-b border-black/5 dark:border-white/10">
-                      <td className="py-2 pr-4">{m.provider}</td>
-                      <td className="py-2 pr-4">{m.model}</td>
-                      <td className="py-2 pr-4 text-right tabular-nums">{m.requestCount.toLocaleString('ja-JP')}</td>
-                      <td className="py-2 pr-4 text-right tabular-nums">{m.inputTokens.toLocaleString('ja-JP')}</td>
-                      <td className="py-2 pr-4 text-right tabular-nums">{m.outputTokens.toLocaleString('ja-JP')}</td>
-                      <td className="py-2 pr-4 text-right tabular-nums">
-                        {m.averageLatencyMs != null ? `${(m.averageLatencyMs / 1000).toFixed(1)}秒` : '-'}
-                      </td>
-                      <td className="py-2 pr-4 text-right tabular-nums">{m.errorCount.toLocaleString('ja-JP')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {!summary || summary.requestCount === 0 ? (
+          <p className="rounded-xl border border-black/10 p-6 text-sm text-foreground/60 dark:border-white/15">
+            まだチャットの利用履歴がありません。チャット画面で質問を送ると、ここに利用状況が表示されます。
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <StatTile label="質問した回数" value={summary.requestCount.toLocaleString('ja-JP')} />
+              <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
+              <StatTile label="出力トークン" value={summary.outputTokens.toLocaleString('ja-JP')} />
+              <StatTile
+                label="推定コスト（クラウドAI換算）"
+                value={`$${summary.estimatedCost.toFixed(4)}`}
+                hint="実際の課金はありません。同規模モデルをクラウドAPIで使った場合の参考値です"
+              />
+              <StatTile
+                label="平均レスポンス時間"
+                value={summary.averageLatencyMs != null ? `${(summary.averageLatencyMs / 1000).toFixed(1)}秒` : '-'}
+              />
             </div>
-          )}
-        </section>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">カテゴリ別分析</h2>
-          <div className="grid gap-6 lg:grid-cols-2">
-            {CLASSIFICATION_DIMENSION_COLUMNS.map((dimension) => (
-              <div key={dimension} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
-                <h3 className="mb-3 text-sm font-semibold">{DIMENSION_LABELS[dimension]}</h3>
-                <BarChart items={(categories[dimension] ?? []).map((c) => ({ label: c.value, value: c.count }))} />
-              </div>
-            ))}
-          </div>
-        </section>
+            {models.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold">モデル別のコスト・速度比較</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {models.map((m) => (
+                    <div key={`${m.provider}:${m.model}`} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+                      <p className="text-sm font-semibold">{m.model}</p>
+                      <p className="mt-1 text-xs text-foreground/50">利用件数 {m.requestCount.toLocaleString('ja-JP')}件</p>
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-foreground/60">1件あたりコスト</p>
+                          <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                            ${(m.estimatedCost / m.requestCount).toFixed(5)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-foreground/60">平均レスポンス時間</p>
+                          <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                            {m.averageLatencyMs != null ? `${(m.averageLatencyMs / 1000).toFixed(1)}秒` : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section>
-            <h2 className="mb-1 text-lg font-semibold">RAG候補</h2>
-            <p className="mb-3 text-xs text-foreground/50">
-              社内ドキュメント整備によって回答品質が上がりそうな質問（該当 {ragCandidates.total} 件）
-            </p>
-            <CandidateList items={ragCandidates.items} />
-          </section>
-          <section>
-            <h2 className="mb-1 text-lg font-semibold">自動化候補</h2>
-            <p className="mb-3 text-xs text-foreground/50">
-              自動化可能性が「高」と判定された質問（該当 {automationCandidates.total} 件）
-            </p>
-            <CandidateList items={automationCandidates.items} />
-          </section>
-        </div>
+        <p className="text-xs text-foreground/40">
+          トークンはAIとのやり取りの課金単位で、文章の長さに応じて増減します。推定コストは、同規模のモデルをクラウドAPI経由で使った場合の参考換算値です（このアプリはローカル実行のため実際の課金はありません）。
+        </p>
       </div>
     </div>
   )

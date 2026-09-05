@@ -30,8 +30,10 @@ export type Summary = {
   monthlyCounts: { month: string; count: number }[];
 };
 
-function filterByRange(from: Date, to: Date): AiRequestRecord[] {
-  return getAllRequests().filter((r) => r.createdAt >= from && r.createdAt < to);
+function filterByRange(from: Date, to: Date, sessionId?: string): AiRequestRecord[] {
+  return getAllRequests().filter(
+    (r) => r.createdAt >= from && r.createdAt < to && (sessionId == null || r.sessionId === sessionId),
+  );
 }
 
 function average(values: number[]): number | null {
@@ -39,8 +41,8 @@ function average(values: number[]): number | null {
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 }
 
-export async function getSummary({ from, to }: DateRange): Promise<Summary> {
-  const rows = filterByRange(from, to);
+export async function getSummary({ from, to }: DateRange, sessionId?: string): Promise<Summary> {
+  const rows = filterByRange(from, to, sessionId);
   const requestCount = rows.length;
   const activeUserCount = new Set(rows.map((r) => r.sessionId)).size;
   const inputTokens = rows.reduce((a, r) => a + (r.inputTokens ?? 0), 0);
@@ -107,8 +109,8 @@ export type ModelStat = {
   errorCount: number;
 };
 
-export async function getModelStats({ from, to }: DateRange): Promise<ModelStat[]> {
-  const rows = filterByRange(from, to);
+export async function getModelStats({ from, to }: DateRange, sessionId?: string): Promise<ModelStat[]> {
+  const rows = filterByRange(from, to, sessionId);
 
   type Acc = {
     provider: string;
