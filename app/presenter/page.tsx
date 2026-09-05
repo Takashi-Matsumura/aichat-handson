@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import Link from 'next/link'
 
 export default function PresenterPage() {
   type ModelInfo = { model: string | null; ctxSize: number | null; parallel: number | null; label: string | null }
@@ -10,6 +9,8 @@ export default function PresenterPage() {
   const [url, setUrl] = useState('')
   const [copied, setCopied] = useState(false)
   const [modelInfos, setModelInfos] = useState<Record<1 | 2, ModelInfo | null>>({ 1: null, 2: null })
+  const [model1Enabled, setModel1EnabledState] = useState<boolean | null>(null)
+  const [updatingLock, setUpdatingLock] = useState(false)
 
   useEffect(() => {
     setUrl(window.location.origin)
@@ -25,6 +26,11 @@ export default function PresenterPage() {
       })
     }
     fetchAll()
+
+    fetch('/api/admin/model-lock')
+      .then((r) => r.json())
+      .then((data) => setModel1EnabledState(data.model1Enabled !== false))
+      .catch(() => setModel1EnabledState(true))
   }, [])
 
   async function copyUrl() {
@@ -34,19 +40,27 @@ export default function PresenterPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function toggleModel1() {
+    if (model1Enabled === null || updatingLock) return
+    const next = !model1Enabled
+    setUpdatingLock(true)
+    try {
+      const res = await fetch('/api/admin/model-lock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      })
+      const data = await res.json()
+      setModel1EnabledState(data.model1Enabled !== false)
+    } catch {
+      // 失敗時は変更しない
+    } finally {
+      setUpdatingLock(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center px-6 py-10 relative">
-      <Link
-        href="/"
-        title="チャット画面に戻る"
-        aria-label="チャット画面に戻る"
-        className="absolute top-6 left-6 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12" />
-          <polyline points="12 19 5 12 12 5" />
-        </svg>
-      </Link>
       <div className="w-full max-w-md flex flex-col items-center gap-8">
 
         {/* ヘッダー */}
@@ -143,6 +157,36 @@ export default function PresenterPage() {
               )
             })
           )}
+        </div>
+
+        {/* モデル利用制御（管理者設定） */}
+        <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-3 shadow-sm flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-xs text-gray-400 dark:text-zinc-500 block">モデル利用制御（管理者設定）</span>
+              <span className="text-sm text-gray-700 dark:text-zinc-200">gemma-4-12b を受講者に利用させる</span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={model1Enabled === true}
+              aria-label="gemma-4-12b を受講者に利用させる"
+              onClick={toggleModel1}
+              disabled={model1Enabled === null || updatingLock}
+              className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                model1Enabled ? 'bg-ocean-700' : 'bg-gray-300 dark:bg-zinc-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  model1Enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-zinc-500">
+            大人数のハンズオンで負荷をgemma-3-4bに集中させるための一時的な仕組みです。OFFにすると、受講者のチャット画面でgemma-4-12bが選択できなくなります。恒久的に使わない場合は、llama-server（ポート8080側）自体の停止を推奨します。
+          </p>
         </div>
       </div>
     </div>

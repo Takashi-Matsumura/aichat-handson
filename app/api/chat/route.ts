@@ -1,5 +1,6 @@
 import { NextRequest, after } from 'next/server'
 import { recordAndClassify } from '@/lib/analytics/record'
+import { isModel1Enabled } from '@/lib/settings/store'
 
 const LLAMA_URLS: Record<number, string> = {
   1: process.env.LLAMA_API_URL ?? 'http://localhost:8080',
@@ -40,6 +41,13 @@ function lastUserMessageContent(messages: { role: string; content: string }[]): 
 export async function POST(request: NextRequest) {
   const { messages, thinking, modelIndex } = await request.json()
   const n = modelIndex === 2 ? 2 : 1
+  // フロント側の制御をすり抜けて直接APIが叩かれた場合の保険。
+  if (n === 1 && !isModel1Enabled()) {
+    return Response.json(
+      { error: 'このモデルは現在管理者により利用停止中です。もう一方のモデルをご利用ください。' },
+      { status: 403 }
+    )
+  }
   const LLAMA_URL = LLAMA_URLS[n]
   const { sid, setCookieHeader } = getOrCreateSessionId(request)
   const promptText = lastUserMessageContent(messages)

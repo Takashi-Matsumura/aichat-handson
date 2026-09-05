@@ -78,6 +78,8 @@ export default function Home() {
   const [panelFull, setPanelFull] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [selectedModel, setSelectedModel] = useState<1 | 2>(1)
+  // 管理者が /presenter からモデル1(gemma-4-12b)を一時的に利用停止できる（大人数開催時の負荷対策）
+  const [model1Enabled, setModel1Enabled] = useState(true)
   const [modelInfos, setModelInfos] = useState<Record<1 | 2, ModelInfo>>({
     1: { model: null, label: null, online: false, ctxSize: null },
     2: { model: null, label: null, online: false, ctxSize: null },
@@ -153,9 +155,28 @@ export default function Home() {
     }
     fetchModelInfo(1)
     fetchModelInfo(2)
+
+    // 管理者によるモデル1(gemma-4-12b)の利用停止状態を取得する。
+    async function fetchModelLock() {
+      try {
+        const res = await fetch('/api/admin/model-lock')
+        const data = await res.json()
+        const enabled = data.model1Enabled !== false
+        setModel1Enabled(enabled)
+        if (!enabled) {
+          // localStorageの復元よりこちらが後勝ちになるよう、直接切り替える
+          setSelectedModel((prev) => (prev === 1 ? 2 : prev))
+          localStorage.setItem('selected-model', '2')
+        }
+      } catch {
+        // 取得できない場合は「利用可能」のまま扱う
+      }
+    }
+    fetchModelLock()
   }, [])
 
   function switchModel(n: 1 | 2) {
+    if (n === 1 && !model1Enabled) return // 管理者による利用停止中
     // 生成中にモデルを切り替えると、進行中のリクエストがバックグラウンドに取り残され、
     // 応答が届いても表示先のメッセージが既に消えているため画面に反映されない。
     // 切り替え前に必ず中断してから messages をクリアする。
@@ -486,22 +507,29 @@ export default function Home() {
         </div>
         {/* モデル選択（パネルを閉じているときは手動切替可、開いているときはページに応じて自動切替） */}
         <div className="flex items-center gap-1 rounded-xl border border-gray-200 dark:border-zinc-600 p-0.5">
-          {([1, 2] as const).map((n) => (
+          {([1, 2] as const).map((n) => {
+            const locked = n === 1 && !model1Enabled
+            return (
             <button
               key={n}
               type="button"
+              disabled={locked}
               onClick={() => { if (!panelOpen) switchModel(n) }}
               title={
-                panelOpen
-                  ? 'ハンズオンページに応じて自動切替'
-                  : (modelInfos[n].model ?? `ポート ${n === 1 ? 8080 : 8081}`)
+                locked
+                  ? '管理者により一時的に利用停止中です'
+                  : panelOpen
+                    ? 'ハンズオンページに応じて自動切替'
+                    : (modelInfos[n].model ?? `ポート ${n === 1 ? 8080 : 8081}`)
               }
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                selectedModel === n
-                  ? 'bg-ocean-700 text-white'
-                  : panelOpen
-                    ? 'text-gray-500 dark:text-zinc-400 cursor-default'
-                    : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                locked
+                  ? 'text-gray-300 dark:text-zinc-600 cursor-not-allowed opacity-60'
+                  : selectedModel === n
+                    ? 'bg-ocean-700 text-white'
+                    : panelOpen
+                      ? 'text-gray-500 dark:text-zinc-400 cursor-default'
+                      : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
               }`}
             >
               <span
@@ -511,7 +539,8 @@ export default function Home() {
               />
               {shortModelName(modelInfos[n], n)}
             </button>
-          ))}
+            )
+          })}
         </div>
 
         <div className="flex items-center gap-2">
