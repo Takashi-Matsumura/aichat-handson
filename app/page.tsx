@@ -1068,7 +1068,7 @@ export default function Home() {
       </div>
 
       <footer className="flex-none bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700 px-4 py-2 flex items-center justify-between text-xs text-gray-400 dark:text-zinc-500">
-        <span>© 2026 TED</span>
+        <span>© 2026 MatsBACCANO</span>
         <span className="hidden sm:block">AI の回答は参考情報です。重要な意思決定には専門家へご確認ください。</span>
       </footer>
     </div>
