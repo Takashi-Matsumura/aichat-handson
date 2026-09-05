@@ -533,8 +533,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-zinc-900">
-      <header className="flex-none bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <header className="flex-none bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 px-4 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="flex items-center gap-2 justify-self-start">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ocean-700 flex-none">
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
             <circle cx="8.5" cy="10" r="1" fill="currentColor" stroke="none" />
@@ -550,7 +550,7 @@ export default function Home() {
           </p>
         </div>
         {/* モデル選択（パネルを閉じているときは手動切替可、開いているときはページに応じて自動切替） */}
-        <div className="flex items-center gap-1 rounded-xl border border-gray-200 dark:border-zinc-600 p-0.5">
+        <div className="flex items-center gap-1 rounded-xl border border-gray-200 dark:border-zinc-600 p-0.5 justify-self-center">
           {([1, 2] as const).map((n) => {
             const locked = n === 1 && !model1Enabled
             return (
@@ -587,7 +587,7 @@ export default function Home() {
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-self-end">
           {/* AI利用状況ダッシュボードへのリンク */}
           <Link
             href="/analytics"
@@ -960,27 +960,26 @@ export default function Home() {
                   <line x1="9" y1="11" x2="14" y2="11" />
                 </svg>
               </button>
-              {/* 推論モードトグル */}
-              <button
-                type="button"
-                onClick={toggleThinking}
-                disabled={selectedModel === 2}
-                title={selectedModel === 2 ? 'このモデルは推論モード非対応' : thinking ? '推論モード ON（クリックでOFF）' : '推論モード OFF（クリックでON）'}
-                aria-pressed={thinking}
-                className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
-                  selectedModel === 2
-                    ? 'border-gray-100 dark:border-zinc-700 text-gray-300 dark:text-zinc-700 cursor-not-allowed'
-                    : thinking
-                    ? 'border-amber-400 bg-amber-50 text-amber-500 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
-                    : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-                }`}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
-                  <path d="M9 18h6"/>
-                  <path d="M10 22h4"/>
-                </svg>
-              </button>
+              {/* 推論モードトグル（推論に対応するgemma-4-12b選択時のみ表示） */}
+              {selectedModel === 1 && (
+                <button
+                  type="button"
+                  onClick={toggleThinking}
+                  title={thinking ? '推論モード ON（クリックでOFF）' : '推論モード OFF（クリックでON）'}
+                  aria-pressed={thinking}
+                  className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
+                    thinking
+                      ? 'border-amber-400 bg-amber-50 text-amber-500 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
+                      : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                  }`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+                    <path d="M9 18h6"/>
+                    <path d="M10 22h4"/>
+                  </svg>
+                </button>
+              )}
               <textarea
                 ref={inputRef}
                 value={input}
