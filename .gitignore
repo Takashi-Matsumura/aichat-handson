@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# RAG知識ソース（講師が研修当日に置くファイル。コミットしない）
+/knowledge/*
+!/knowledge/README.md
