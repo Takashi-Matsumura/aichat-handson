@@ -948,9 +948,10 @@ export default function Home() {
             setInput(text)
             inputRef.current?.focus()
           }}
-          onPageChange={(pageId) => {
-            // handson1〜3: gemma-3-4b（model 2）、handson4: gemma-4-12b（model 1）
-            switchModel(pageId <= 3 ? 2 : 1)
+          onPageChange={() => {
+            // 「AIの推論とエージェント」（gemma-4-12b使用）を一時非表示にしたため、
+            // ハンズオン中は常に gemma-3-4b（model 2）を使う。
+            switchModel(2)
           }}
         />
       </div>

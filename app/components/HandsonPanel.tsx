@@ -22,7 +22,9 @@ const PAGES: Page[] = [
   { id: 1, title: 'AIリテラシー', file: '/handson/handson1.md' },
   { id: 2, title: 'AIの仕組み', file: '/handson/handson2.md' },
   { id: 3, title: 'AIとセキュリティ', file: '/handson/handson3.md' },
-  { id: 4, title: 'AIの推論とエージェント', file: '/handson/handson4.md' },
+  // 「AIの推論とエージェント」は今回の研修ではレベルが合わないため一時的に非表示。
+  // コンテンツ（handson4.md）は削除しておらず、再度必要になれば以下のコメントを外すだけで良い。
+  // { id: 4, title: 'AIの推論とエージェント', file: '/handson/handson4.md' },
 ]
 
 function extractText(node: React.ReactNode): string {
