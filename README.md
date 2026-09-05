@@ -8,6 +8,7 @@
 - **2モデル切り替え**：軽量モデルと高性能モデルを画面から切り替えて応答速度・回答の違いを比較できます
 - **ハンズオンテキスト**：「AIリテラシー」「AIの仕組み」「AIとセキュリティ」「AIの推論とエージェント」の4章を、チャット画面と並べて閲覧しながら進行できます
 - **推論モード**：モデルに思考過程（`<think>`）を明示させて表示します
+- **RAG（社内資料を使った回答）**：`knowledge/`フォルダに置いた資料を検索し、根拠付きで回答します。外部ベクトルDBは使わず、埋め込み専用のllama-serverとインメモリ検索だけで完結します
 - **利用状況ダッシュボード**：会話ログを匿名集計し、業務カテゴリ・改善余地などをLLM自身に分類させて可視化します（`/analytics`）
 - **受講者向けURL共有画面**：講師専用のQRコード表示画面です。通常のナビゲーションには表示されないため、`/presenter` に直接アクセスしてください
 
@@ -15,6 +16,7 @@
 
 - Node.js 20 以上
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) の `llama-server` を2つ起動しておくこと（モデル1・モデル2）
+- RAG機能を使う場合は、埋め込み専用の `llama-server` をもう1つ起動しておくこと（後述）
 
 ```bash
 # 例
@@ -44,6 +46,14 @@ http://localhost:3000 を開きます。
 | `LLAMA_MODEL_LABEL_1` / `LLAMA_MODEL_LABEL_2` | 画面に表示するモデルの表示名 | モデル名から自動生成 |
 | `LLAMA_MAX_TOKENS` | チャット1回あたりの生成トークン上限 | `2048` |
 | `LLAMA_CLASSIFY_MAX_TOKENS` | 利用ログ分類リクエストのトークン上限 | `512` |
+| `RAG_EMBED_API_URL` | 埋め込み用llama.cppサーバーURL | `http://localhost:8082` |
+| `RAG_EMBED_MODEL` | 埋め込みAPIに渡すモデル名 | `embedding` |
+| `RAG_KNOWLEDGE_DIR` | 知識ソースのフォルダ | `./knowledge` |
+| `RAG_TOP_K` | 検索で取り出す件数 | `4` |
+| `RAG_CHUNK_SIZE` / `RAG_CHUNK_OVERLAP` | チャンクの最大文字数 / 重なり文字数 | `500` / `100` |
+| `RAG_MIN_SCORE` | この類似度未満のチャンクは不採用 | `0.3` |
+| `RAG_EMBED_BATCH_SIZE` / `RAG_EMBED_TIMEOUT_MS` | 埋め込みのバッチ件数 / タイムアウト | `16` / `20000` |
+| `RAG_EMBED_QUERY_PREFIX` / `RAG_EMBED_DOC_PREFIX` | 埋め込みモデルが要求するプレフィックス | 空文字 |
 
 ## 複数人ハンズオンでのサーバー容量設計（参考値）
 
@@ -82,6 +92,37 @@ llama.cppでさばくために `--parallel`（同時処理スロット数）と 
 ```bash
 sudo sysctl iogpu.wired_limit_mb=<引き上げたい上限(MB)>
 ```
+
+## RAG（社内資料を使った回答）
+
+`knowledge/` フォルダに `.md` / `.txt` ファイルを置くと、チャットが自動でその内容を
+検索し、根拠付きで回答します。外部ベクトルDB・LangChain等は使わず、埋め込み専用の
+`llama-server` とインメモリのコサイン類似度検索だけで完結します（詳しくは
+[`knowledge/README.md`](./knowledge/README.md) を参照）。
+
+### 埋め込みサーバーの起動
+
+事前に埋め込み用のGGUFモデルを用意し、通常のチャット用とは別に3つ目の
+`llama-server` を起動します。以下は動作確認済みの例（[bge-m3](https://huggingface.co/bbvch-ai/bge-m3-GGUF)、日本語を含む多言語対応・1024次元）です。
+
+```bash
+llama-server --hf-repo bbvch-ai/bge-m3-GGUF --hf-file bge-m3-q4_k_m.gguf \
+  --embeddings --pooling cls --host 127.0.0.1 --port 8082 \
+  -c 4096 -b 4096 -ub 4096 -ngl 99
+```
+
+完全オフライン環境では `--hf-repo`/`--hf-file` によるダウンロードができないため、
+研修当日までにモデルファイルを入手し、ローカルパス指定（`-m /path/to/model.gguf`）
+に切り替えてください。
+
+### 使い方
+
+1. `knowledge/` フォルダに資料(`.md` / `.txt`)を置く
+2. チャット画面の「RAG」トグルをONにする（知識ソースが1件も無いと押せません）
+3. 質問すると、資料を検索した上で回答し、回答の下に「参照した資料」パネルが表示されます
+4. ファイルを追加・変更した直後にすぐ反映したい場合は、`/presenter` の
+   「知識ソースを再読み込み」ボタンを押してください（何もしなくても次の質問から
+   自動で反映されます）
 
 ## Dockerで動かす
 

@@ -1,6 +1,12 @@
 import { NextRequest, after } from 'next/server'
 import { recordAndClassify } from '@/lib/analytics/record'
 import { isModel1Enabled } from '@/lib/settings/store'
+import { retrieve } from '@/lib/rag/search'
+import { buildContextBlock, toSourceRefs, type SourceRef } from '@/lib/rag/prompt'
+
+// 推論モード(thinking)のsystemプロンプト。RAGのcontextと連結する都合上、定数化する。
+const THINKING_SYSTEM_PROMPT =
+  'あなたは丁寧に考えてから回答するAIアシスタントです。回答する前に必ず <think> と </think> タグで囲んで日本語で思考プロセスを記述し、その後に最終的な回答を記述してください。'
 
 const LLAMA_URLS: Record<number, string> = {
   1: process.env.LLAMA_API_URL ?? 'http://localhost:8080',
@@ -39,7 +45,7 @@ function lastUserMessageContent(messages: { role: string; content: string }[]): 
 }
 
 export async function POST(request: NextRequest) {
-  const { messages, thinking, modelIndex } = await request.json()
+  const { messages, thinking, modelIndex, rag } = await request.json()
   const n = modelIndex === 2 ? 2 : 1
   // フロント側の制御をすり抜けて直接APIが叩かれた場合の保険。
   if (n === 1 && !isModel1Enabled()) {
@@ -52,15 +58,29 @@ export async function POST(request: NextRequest) {
   const { sid, setCookieHeader } = getOrCreateSessionId(request)
   const promptText = lastUserMessageContent(messages)
 
-  const allMessages = thinking
-    ? [
-        {
-          role: 'system',
-          content:
-            'あなたは丁寧に考えてから回答するAIアシスタントです。回答する前に必ず <think> と </think> タグで囲んで日本語で思考プロセスを記述し、その後に最終的な回答を記述してください。',
-        },
-        ...messages,
-      ]
+  // RAG: 例外を投げない設計(retrieve内部でtry/catch済み)なので、埋め込みサーバーが
+  // 落ちていてもチャット自体は通常どおり動く。
+  let sources: SourceRef[] = []
+  let ragContext = ''
+  if (rag === true) {
+    const { hits } = await retrieve(promptText)
+    if (hits.length > 0) {
+      sources = toSourceRefs(hits)
+      ragContext = buildContextBlock(hits)
+    }
+  }
+
+  // systemメッセージは必ず1個に連結する。Gemmaのチャットテンプレートにはsystemロールが
+  // 無く、llama.cpp側で先頭userメッセージへ畳み込まれる。system を複数個並べると
+  // テンプレート実装によっては2個目以降が無視される等、環境依存の事故になりうるため。
+  // 順序は「振る舞いの指示(思考プロセス) → データ(検索した資料)」。
+  // 検索結果が0件のときはcontextを足さない。「資料はありませんでした」と書くと
+  // モデルがそれに引きずられて回答自体を拒否しがちになるため、素のLLMとして答えさせる。
+  const systemParts: string[] = []
+  if (thinking) systemParts.push(THINKING_SYSTEM_PROMPT)
+  if (ragContext) systemParts.push(ragContext)
+  const allMessages = systemParts.length > 0
+    ? [{ role: 'system', content: systemParts.join('\n\n---\n\n') }, ...messages]
     : messages
   let upstream: Response
   try {
@@ -110,10 +130,27 @@ export async function POST(request: NextRequest) {
     'X-Accel-Buffering': 'no',
   }
   if (setCookieHeader) headers['Set-Cookie'] = setCookieHeader
-  return new Response(toClient, { headers })
+  const body = rag === true ? prependSourcesEvent(toClient, sources) : toClient
+  return new Response(body, { headers })
 }
 
 // ---------------------------------------------------------------------------
+
+// llama.cpp のSSEをそのまま流す方針は維持したまま、ストリーム先頭に参照資料を
+// 1件のdata行として差し込む。既存のクライアント側パーサ(app/page.tsx)は
+// `data: ` で始まりJSONとして解析でき、`error`も`choices[0].delta.content`も
+// 存在しないイベントとして無視できる形なので、クライアント側の変更なしに
+// 混ぜても既存動作を壊さない。
+function prependSourcesEvent(stream: ReadableStream<Uint8Array>, sources: SourceRef[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder()
+  return stream.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ handson_sources: sources })}\n\n`))
+      },
+    })
+  )
+}
 
 // ストリームを読み切り、assistantの応答全文とトークン使用量を回収する。
 // クライアントへの配信には使わない（利用状況分析専用）。

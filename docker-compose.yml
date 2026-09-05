@@ -12,20 +12,15 @@ services:
       LLAMA_MODEL:           ${LLAMA_MODEL:-gemma4}
       LLAMA_MODEL_LABEL_1:   ${LLAMA_MODEL_LABEL_1:-}
       LLAMA_MODEL_LABEL_2:   ${LLAMA_MODEL_LABEL_2:-}
+      # RAG（社内資料を使った回答）。埋め込み用のllama-serverは別途起動しておくこと。
+      RAG_EMBED_API_URL:     ${RAG_EMBED_API_URL:-http://host.docker.internal:8082}
+      RAG_EMBED_MODEL:       ${RAG_EMBED_MODEL:-embedding}
+    volumes:
+      # 講師が研修当日に資料(.md/.txt)を置くフォルダ。未マウントならRAGは無効のまま動作する。
+      - ./knowledge:/app/knowledge:ro
     networks:
       - aichat-net
     restart: unless-stopped
-
-  # ── RAG サーバー（将来追加予定）────────────────────────────────────────────
-  # rag:
-  #   image: your-rag-server:latest
-  #   ports:
-  #     - "8001:8001"
-  #   volumes:
-  #     - rag-data:/data
-  #   networks:
-  #     - aichat-net
-  #   restart: unless-stopped
 
   # ── llama.cpp（コンテナ化する場合）────────────────────────────────────────
   # llama:
@@ -39,9 +34,18 @@ services:
   #     - aichat-net
   #   restart: unless-stopped
 
+  # ── llama.cpp（RAG用埋め込みサーバー。コンテナ化する場合）──────────────────
+  # embed:
+  #   image: ghcr.io/ggerganov/llama.cpp:server
+  #   ports:
+  #     - "8082:8082"
+  #   volumes:
+  #     - ./models:/models
+  #   command: ["-m", "/models/bge-m3-q4_k_m.gguf", "--embeddings", "--pooling", "cls", "--host", "0.0.0.0", "--port", "8082"]
+  #   networks:
+  #     - aichat-net
+  #   restart: unless-stopped
+
 networks:
   aichat-net:
     driver: bridge
-
-# volumes:
-#   rag-data:

@@ -8,6 +8,7 @@ import remarkCjkFriendly from 'remark-cjk-friendly'
 import rehypeKatex from 'rehype-katex'
 import Link from 'next/link'
 import HandsonPanel from './components/HandsonPanel'
+import SourcesPanel, { type SourceRef } from './components/SourcesPanel'
 
 type ModelInfo = { model: string | null; label: string | null; online: boolean; ctxSize: number | null }
 
@@ -26,11 +27,17 @@ type Message = {
   versions?: string[]
   displayVersionIdx?: number
   stopped?: boolean
+  ragEnabled?: boolean
+  // undefined = まだ受信していない（RAG OFF、または応答が完了していない）
+  // [] = 検索したが該当する資料が無かった
+  sources?: SourceRef[]
+  showSources?: boolean
 }
 
 type ChatStreamPayload = {
   choices?: { delta?: { content?: string } }[]
   error?: string
+  handson_sources?: SourceRef[]
 }
 
 const TOKEN_COLORS = [
@@ -77,6 +84,9 @@ export default function Home() {
   const [panelMounted, setPanelMounted] = useState(false)
   const [panelFull, setPanelFull] = useState(false)
   const [thinking, setThinking] = useState(false)
+  const [ragMode, setRagMode] = useState(false)
+  // 知識ソースが登録されている(chunkCount > 0)、かつ埋め込みサーバーが起動しているときのみtrue
+  const [ragAvailable, setRagAvailable] = useState(false)
   const [selectedModel, setSelectedModel] = useState<1 | 2>(1)
   // 管理者が /presenter からモデル1(gemma-4-12b)を一時的に利用停止できる（大人数開催時の負荷対策）
   const [model1Enabled, setModel1Enabled] = useState(true)
@@ -137,9 +147,23 @@ export default function Home() {
   useEffect(() => {
     setPanelOpen(localStorage.getItem('handson-panel-open') === 'true')
     setThinking(localStorage.getItem('thinking-mode') === 'true')
+    setRagMode(localStorage.getItem('rag-mode') === 'true')
     const saved = localStorage.getItem('selected-model')
     if (saved === '2') setSelectedModel(2)
     setPanelMounted(true)
+
+    // RAGの知識ソースが登録されているか(=トグルを有効にできるか)を確認する。
+    // このリクエスト自体がインデックス構築のウォームアップも兼ねる。
+    async function fetchRagStatus() {
+      try {
+        const res = await fetch('/api/rag/status')
+        const data = await res.json()
+        setRagAvailable(data.online === true && data.chunkCount > 0)
+      } catch {
+        setRagAvailable(false)
+      }
+    }
+    fetchRagStatus()
 
     async function fetchModelInfo(n: 1 | 2) {
       try {
@@ -218,6 +242,13 @@ export default function Home() {
     })
   }
 
+  function toggleRag() {
+    setRagMode((prev) => {
+      localStorage.setItem('rag-mode', String(!prev))
+      return !prev
+    })
+  }
+
   async function handleTokenToggle(index: number, content: string, hasTokens: boolean) {
     if (hasTokens) {
       setMessages(prev => prev.map((m, j) =>
@@ -262,6 +293,7 @@ export default function Home() {
     historyMessages: { role: string; content: string }[],
     useThink: boolean,
     modelIdx: 1 | 2,
+    useRag: boolean,
   ) {
     const update = (updater: (msg: Message) => Message) =>
       setMessages(prev => {
@@ -274,7 +306,7 @@ export default function Home() {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx }),
+      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx, rag: useRag }),
       signal: abortControllerRef.current.signal,
     })
 
@@ -306,6 +338,11 @@ export default function Home() {
         try { parsed = JSON.parse(payload) } catch { continue }
 
         if (parsed.error) throw new Error(parsed.error)
+
+        if (parsed.handson_sources) {
+          update(msg => ({ ...msg, sources: parsed.handson_sources, showSources: false }))
+          continue
+        }
 
         const chunk = parsed.choices?.[0]?.delta?.content ?? ''
         if (chunk) {
@@ -343,10 +380,11 @@ export default function Home() {
 
     setError(null)
     const useThink = thinking
+    const useRag = ragMode && ragAvailable
     const userMessage: Message = { role: 'user', content: text }
     const history = [...messages, userMessage]
     const targetIndex = history.length
-    setMessages([...history, { role: 'assistant', content: '', thinkingEnabled: useThink }])
+    setMessages([...history, { role: 'assistant', content: '', thinkingEnabled: useThink, ragEnabled: useRag }])
     setInput('')
     setLoading(true)
     setStreamingIndex(targetIndex)
@@ -357,6 +395,7 @@ export default function Home() {
         history.map(m => ({ role: m.role, content: m.content })),
         useThink,
         selectedModel,
+        useRag,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -385,6 +424,7 @@ export default function Home() {
 
     setError(null)
     const useThink = thinking
+    const useRag = ragMode && ragAvailable
     const prevVersions = [...(msg.versions ?? []), msg.content]
 
     setMessages(prev => prev.map((m, j) =>
@@ -401,6 +441,9 @@ export default function Home() {
         showTokens: undefined,
         versions: prevVersions,
         displayVersionIdx: undefined,
+        ragEnabled: useRag,
+        sources: undefined,
+        showSources: undefined,
       }
     ))
     setLoading(true)
@@ -412,6 +455,7 @@ export default function Home() {
         messages.slice(0, index).map(m => ({ role: m.role, content: m.content })),
         useThink,
         selectedModel,
+        useRag,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -815,6 +859,17 @@ export default function Home() {
                       msg.content
                     )}
                   </div>
+
+                  {/* 参照した資料（RAG）。sourcesが未受信(undefined)のうちは表示しない */}
+                  {msg.role === 'assistant' && msg.sources !== undefined && (
+                    <SourcesPanel
+                      sources={msg.sources}
+                      open={!!msg.showSources}
+                      onToggle={() => setMessages(prev => prev.map((m, j) =>
+                        j === i ? { ...m, showSources: !m.showSources } : m
+                      ))}
+                    />
+                  )}
                 </div>
               </div>
               )
@@ -877,6 +932,34 @@ export default function Home() {
                   </svg>
                 </button>
               )}
+              {/* RAGトグル */}
+              <button
+                type="button"
+                onClick={toggleRag}
+                disabled={!ragAvailable}
+                title={
+                  !ragAvailable
+                    ? '知識ソースが登録されていません（knowledgeフォルダに資料を置いてください）'
+                    : ragMode
+                    ? 'RAG ON（社内資料を検索して回答。クリックでOFF）'
+                    : 'RAG OFF（クリックでON）'
+                }
+                aria-pressed={ragMode}
+                className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
+                  !ragAvailable
+                    ? 'border-gray-100 dark:border-zinc-700 text-gray-300 dark:text-zinc-700 cursor-not-allowed'
+                    : ragMode
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-500 dark:border-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                }`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  <line x1="9" y1="7" x2="15" y2="7" />
+                  <line x1="9" y1="11" x2="14" y2="11" />
+                </svg>
+              </button>
               {/* 推論モードトグル */}
               <button
                 type="button"
