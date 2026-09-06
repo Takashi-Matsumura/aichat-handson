@@ -220,8 +220,12 @@ export function PromptBroadcastPanel() {
         ) : broadcast ? (
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-sm text-gray-700 dark:text-zinc-200 font-medium truncate">
-                📣 {broadcast.title}
+              <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-zinc-200 font-medium truncate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none text-ocean-600 dark:text-ocean-400">
+                  <path d="M3 11l18-5v12L3 14v-3z" />
+                  <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                </svg>
+                {broadcast.title}
               </span>
               <span className="text-xs text-gray-400 dark:text-zinc-500">
                 配信中 / {new Date(broadcast.sentAt).toLocaleTimeString('ja-JP')}
