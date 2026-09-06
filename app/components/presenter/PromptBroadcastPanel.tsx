@@ -175,44 +175,6 @@ export function PromptBroadcastPanel() {
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* 現在の配信状態 */}
-      <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-3 shadow-sm flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-gray-400 dark:text-zinc-500">配信状態</span>
-          <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
-            接続中の受講者: {subscriberCount}人
-          </span>
-        </div>
-        {!broadcastLoaded ? (
-          <span className="text-gray-300 dark:text-zinc-600 text-sm animate-pulse">取得中...</span>
-        ) : broadcast ? (
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-zinc-200 font-medium truncate">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none text-ocean-600 dark:text-ocean-400">
-                  <path d="M3 11l18-5v12L3 14v-3z" />
-                  <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-                </svg>
-                {broadcast.title}
-              </span>
-              <span className="text-xs text-gray-400 dark:text-zinc-500">
-                配信中 / {new Date(broadcast.sentAt).toLocaleTimeString('ja-JP')}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleClearBroadcast}
-              disabled={clearingBroadcast}
-              className="flex-none rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {clearingBroadcast ? '処理中...' : '配信を取り下げる'}
-            </button>
-          </div>
-        ) : (
-          <span className="text-sm text-gray-400 dark:text-zinc-500">現在配信中のプロンプトはありません</span>
-        )}
-      </div>
-
       {error && (
         <p className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
           {error}
@@ -237,14 +199,54 @@ export function PromptBroadcastPanel() {
         </button>
       </div>
 
-      {prompts === null ? (
-        <span className="text-gray-300 dark:text-zinc-600 text-sm animate-pulse">取得中...</span>
-      ) : prompts.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-zinc-500">
-          まだプロンプトがありません。「新しいプロンプトを追加」から作成してください。
-        </p>
-      ) : (
-        <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
+      <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
+        {/* 現在の配信状態 */}
+        <div className="px-4 py-3 flex flex-col gap-2 border-b border-gray-100 dark:border-zinc-700">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-gray-400 dark:text-zinc-500">配信状態</span>
+            <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
+              接続中の受講者: {subscriberCount}人
+            </span>
+          </div>
+          {!broadcastLoaded ? (
+            <span className="text-gray-300 dark:text-zinc-600 text-sm animate-pulse">取得中...</span>
+          ) : broadcast ? (
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-zinc-200 font-medium truncate">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none text-ocean-600 dark:text-ocean-400">
+                    <path d="M3 11l18-5v12L3 14v-3z" />
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                  </svg>
+                  {broadcast.title}
+                </span>
+                <span className="text-xs text-gray-400 dark:text-zinc-500">
+                  配信中 / {new Date(broadcast.sentAt).toLocaleTimeString('ja-JP')}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearBroadcast}
+                disabled={clearingBroadcast}
+                className="flex-none rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {clearingBroadcast ? '処理中...' : '配信を取り下げる'}
+              </button>
+            </div>
+          ) : (
+            <span className="text-sm text-gray-400 dark:text-zinc-500">現在配信中のプロンプトはありません</span>
+          )}
+        </div>
+
+        {prompts === null ? (
+          <div className="px-4 py-3">
+            <span className="text-gray-300 dark:text-zinc-600 text-sm animate-pulse">取得中...</span>
+          </div>
+        ) : prompts.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-gray-400 dark:text-zinc-500">
+            まだプロンプトがありません。「新しいプロンプトを追加」から作成してください。
+          </p>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -353,8 +355,8 @@ export function PromptBroadcastPanel() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {editing && (
         <PromptEditModal
