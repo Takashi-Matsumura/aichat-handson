@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+import Magnifier from "./components/Magnifier";
 
 const geistSans = localFont({
   src: "../public/fonts/geist-latin.woff2",
@@ -35,7 +36,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Magnifier />
+      </body>
     </html>
   );
 }
