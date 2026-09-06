@@ -279,7 +279,7 @@ export default function PresenterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 flex flex-col items-center px-6 py-10 relative">
-      <div className={`w-full flex flex-col items-center gap-8 mx-auto transition-[max-width] ${tab === 'stats' ? 'max-w-4xl' : tab === 'rag' || tab === 'prompts' ? 'max-w-2xl' : 'max-w-md'}`}>
+      <div className={`w-full flex flex-col items-center gap-8 mx-auto transition-[max-width] ${tab === 'stats' || tab === 'prompts' ? 'max-w-4xl' : tab === 'rag' ? 'max-w-2xl' : 'max-w-md'}`}>
 
         {/* ヘッダー */}
         <div className="text-center">
