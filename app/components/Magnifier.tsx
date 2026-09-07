@@ -225,7 +225,7 @@ export default function Magnifier() {
 
   return (
     <>
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[101] flex items-center" data-magnifier-exclude>
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[101] hidden md:flex items-center" data-magnifier-exclude>
         <button
           type="button"
           onClick={() => setOn((v) => !v)}
