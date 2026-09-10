@@ -61,37 +61,74 @@ http://localhost:3000 を開きます。
 
 ## 複数人ハンズオンでのサーバー容量設計（参考値）
 
-Mac Studioなどユニファイドメモリ搭載機を研修用サーバーにする場合、参加人数分の同時アクセスを
-llama.cppでさばくために `--parallel`（同時処理スロット数）と `-c`（1スロットあたりのコンテキ
-ストサイズ）を調整する必要があります。以下は実測値（Apple M5 / 32GB機でのKVキャッシュ実測値）
-をもとにした概算です。**実機・実際のllama.cppバージョンで負荷テストの上、調整してください。**
+本番サーバーは **Mac Studio（Apple M4 Max / 36GBユニファイドメモリ）** で、
+`launchd`（`~/Library/LaunchAgents/jp.co.occ.ted.llama-server*.plist`）経由で
+以下の2モデルを常時起動しています。
+
+- モデル1（ポート8080）: `gemma-4-E4B-it`（Q4_K_M、`--mmproj`にQ8_0の projector 込み）
+- モデル2（ポート8081）: `gemma-3n-E4B-it`（Q4_K_M、テキストのみ）
+
+以下はこの実機・実モデルに対して `--parallel` と `-c`（コンテキストサイズ）を変えながら
+実測したメモリ使用量（RSS）をもとにした概算です。**llama.cppのバージョンやモデルを変更した
+場合は、必ず本項の方法で再実測してください。**
 
 ### 前提・計算式
 
-- コンテキストサイズは `-c 4096`（ハンズオンの往復会話には十分な量）で統一
-- 実測KVキャッシュコスト: gemma-3-4b ≒ **0.113 MiB/トークン/スロット**、gemma-4-12b ≒ **0.3125 MiB/トークン/スロット**
-- 必要メモリ ≒ OS・Node.jsアプリ分(5GiB) + モデル重み + 計算バッファ(1.5GiB + 0.03GiB×並列数) + (並列数 × コンテキスト × KVキャッシュコスト)
-- モデル重み: gemma-3-4b ≒ 2.93 GiB（`--mmproj`なし、テキストのみ利用時）、gemma-4-12b ≒ 6.62 GiB
+- コンテキストサイズは1スロットあたり `4096`（ハンズオンの往復会話には十分な量）で統一
+- 実測モデル重み（mmap後のRSS、`-ngl 999`フル offload時）:
+  gemma-4-E4B-it ≒ **5.49 GiB**（本体4.97GiB + mmproj 0.52GiB）、
+  gemma-3n-E4B-it ≒ **3.95 GiB**
+- 実測KVキャッシュコスト: gemma-4-E4B-it ≒ **0.015 MiB/トークン/スロット**、
+  gemma-3n-E4B-it ≒ **0.008 MiB/トークン/スロット**
+  （`--parallel`違い・`--ctx-size`違いの4パターンずつRSSを実測し、差分から算出）
+- 計算バッファ（並列数に応じて増える分）: gemma-4-E4B-it ≒ 0.24GiB + 0.04GiB×並列数、
+  gemma-3n-E4B-it ≒ 0.11GiB + 0.03GiB×並列数
+- 必要メモリ ≒ OS分(5GiB、両モデル共通で1回のみ) + Σ各モデル(モデル重み + 計算バッファ +
+  並列数 × 4096 × KVキャッシュコスト)
 
-### 参考値
+### 参考値（モデル単体・`-c 4096`固定、`--parallel`＝参加人数）
 
-| 参加人数 | モデル | `--parallel` | `-c` | 推定必要メモリ |
-|---|---|---|---|---|
-| 10名 | gemma-3-4b | 10 | 4096 | 約14.3 GiB |
-| 10名 | gemma-4-12b | 10 | 4096 | 約25.9 GiB |
-| 30名 | gemma-3-4b | 30 | 4096 | 約23.9 GiB |
-| 30名 | gemma-4-12b | 30 | 4096 | 約51.5 GiB |
-| 50名 | gemma-3-4b | 50 | 4096 | 約33.5 GiB |
-| 50名 | gemma-4-12b | 50 | 4096 | 約77.1 GiB |
+| 参加人数 | モデル | 推定必要メモリ（単体） |
+|---|---|---|
+| 10名 | gemma-3n-E4B-it | 約9.7 GiB |
+| 10名 | gemma-4-E4B-it | 約11.8 GiB |
+| 30名 | gemma-3n-E4B-it | 約11.0 GiB |
+| 30名 | gemma-4-E4B-it | 約13.8 GiB |
+| 50名 | gemma-3n-E4B-it | 約12.2 GiB |
+| 50名 | gemma-4-E4B-it | 約15.8 GiB |
 
-例えば **Mac Studio（36GB）で50名にgemma-3-4bを提供する場合は収まりますが、gemma-4-12bで50名
-（約77GiB）はメモリが全く足りません。** モデルサイズが3倍近く違うと、同じ人数を支えるための
-メモリも同程度の比率で増えるため、参加人数が多いハンズオンでは**軽量モデル（gemma-3-4b）に
-統一し、もう一方（gemma-4-12b）は研修中は停止しておく**のが現実的な選択です（両方を同時に
-フル並列で立てたままにすると、上記の合計が必要になります）。
+### 両モデル同時起動時（本番構成）の合計
 
-またApple SiliconはGPU（Metal）が使えるメモリに既定の上限があるため、`--parallel`を増やす
-場合は事前に上限を引き上げてください。
+| 参加人数（両モデルとも同数と仮定） | 推定必要メモリ（合計） |
+|---|---|
+| 10名 | 約16.4 GiB |
+| 30名 | 約19.7 GiB |
+| 50名 | 約23.0 GiB |
+
+以前（開発用MacBook上での見積もり）は、モデルサイズがより大きい旧モデル（gemma-3-4b／
+gemma-4-12b想定）を前提にしていたため「重いモデルは50名だと単独でも入らない」という結論
+でしたが、**本番で実際に使っているgemma-4-E4B-it／gemma-3n-E4B-itはどちらもかなり小型で、
+Mac Studio（36GB）なら50名規模でも両モデルを同時にフル並列で立てたままで十分収まります**
+（合計約23GiB、OS・他アプリ分を差し引いても余裕があります）。
+
+**2026-09-10時点で、両モデルとも参加50名想定で`--parallel 50`・`--ctx-size 204800`
+（＝1スロット4096トークン×50）に設定済みです**（`~/Library/LaunchAgents/jp.co.occ.ted.llama-server.plist`
+／`jp.co.occ.ted.llama-server-gemma3n.plist`）。実機で起動確認したところ、RSSは
+gemma-4-E4B-it ≒ 10.86 GiB、gemma-3n-E4B-it ≒ 7.24 GiB（合計 約18.1 GiB）で、
+上記の見積もりとほぼ一致し、36GBのうち十分な余裕を確認済みです。想定人数が変わる場合は
+両plistの`--parallel`（と、1スロット4096トークンを保つための`--ctx-size`＝`--parallel`×4096）
+を書き換えた上で、以下で再読み込みしてください。
+
+```bash
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server.plist
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server-gemma3n.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server-gemma3n.plist
+```
+
+またApple SiliconはGPU（Metal）が使えるメモリに既定の上限があるため、`--parallel`を大きく
+増やす場合は事前に上限を引き上げてください（現状 `iogpu.wired_limit_mb=0` ＝OS既定値のまま。
+50名設定・合計約18GiB使用の範囲では既定値のままで問題なく起動できています）。
 
 ```bash
 sudo sysctl iogpu.wired_limit_mb=<引き上げたい上限(MB)>
