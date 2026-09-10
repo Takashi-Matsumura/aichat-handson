@@ -167,6 +167,13 @@ export default function Magnifier() {
     }
     window.addEventListener('wheel', onWheel, { passive: false })
 
+    // 右クリックだけで終了できるように（ON中はブラウザの標準コンテキストメニューを抑止）。
+    function onContextMenu(e: MouseEvent) {
+      e.preventDefault()
+      setOn(false)
+    }
+    window.addEventListener('contextmenu', onContextMenu)
+
     let rafId = requestAnimationFrame(frame)
     function frame() {
       rafId = requestAnimationFrame(frame)
@@ -218,6 +225,7 @@ export default function Magnifier() {
       window.removeEventListener('resize', onResize)
       document.removeEventListener('mouseleave', onMouseLeaveDoc)
       window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('contextmenu', onContextMenu)
       stage.replaceChildren()
       resetLiveState()
     }
@@ -232,7 +240,7 @@ export default function Magnifier() {
           aria-pressed={on}
           title={
             on
-              ? '拡大鏡を終了（Cmd/Ctrl+Shift+Z）'
+              ? '拡大鏡を終了（Cmd/Ctrl+Shift+Z、または右クリック）'
               : '拡大鏡（Cmd/Ctrl+Shift+Z）— 画面を複製して拡大表示します'
           }
           aria-label="拡大鏡"
