@@ -496,7 +496,11 @@ export default function Home() {
         return
       }
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
-      setMessages(prev => prev.slice(0, -1))
+      // ユーザーメッセージ＋空のアシスタント枠の両方を取り除き、送信前の状態に戻す
+      // （末尾1件だけ消すと、次の送信でuserロールが連続してしまい、モデルによっては
+      // チャットテンプレートのrole交互チェックに引っかかる）
+      setMessages(prev => prev.slice(0, targetIndex - 1))
+      setInput(text)
     } finally {
       setLoading(false)
       setStreamingIndex(null)
