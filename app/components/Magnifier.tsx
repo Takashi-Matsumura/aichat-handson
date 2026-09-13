@@ -174,6 +174,16 @@ export default function Magnifier() {
     }
     window.addEventListener('contextmenu', onContextMenu)
 
+    // 左クリックでも終了できるように。トグルボタン・ズームボタンなど拡大鏡自身のUI
+    // （data-magnifier-exclude）上のクリックはそちらのonClickに処理を任せ、ここでは無視する。
+    function onClick(e: MouseEvent) {
+      if (e.button !== 0) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('[data-magnifier-exclude]')) return
+      setOn(false)
+    }
+    window.addEventListener('click', onClick)
+
     let rafId = requestAnimationFrame(frame)
     function frame() {
       rafId = requestAnimationFrame(frame)
@@ -226,6 +236,7 @@ export default function Magnifier() {
       document.removeEventListener('mouseleave', onMouseLeaveDoc)
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('contextmenu', onContextMenu)
+      window.removeEventListener('click', onClick)
       stage.replaceChildren()
       resetLiveState()
     }
@@ -240,7 +251,7 @@ export default function Magnifier() {
           aria-pressed={on}
           title={
             on
-              ? '拡大鏡を終了（Cmd/Ctrl+Shift+Z、または右クリック）'
+              ? '拡大鏡を終了（Cmd/Ctrl+Shift+Z、または画面クリック）'
               : '拡大鏡（Cmd/Ctrl+Shift+Z）— 画面を複製して拡大表示します'
           }
           aria-label="拡大鏡"
