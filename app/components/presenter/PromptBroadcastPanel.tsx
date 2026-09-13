@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { PromptEditModal } from '@/app/components/presenter/PromptEditModal'
 
 type Prompt = {
@@ -19,6 +19,28 @@ type Broadcast = {
 
 type Editing = { mode: 'create' } | { mode: 'edit'; prompt: Prompt }
 
+// インポートファイルは書き出し形式({version, prompts})と素の配列のどちらも受け付ける。
+// id/updatedAtが含まれていても無視し、常に新規プロンプトとして取り込む
+// （別環境からの持ち込みでidが衝突/上書きされる事故を避けるため）。
+function parsePromptImportEntries(raw: unknown): Array<{ title: string; body: string }> | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { prompts?: unknown }).prompts)
+      ? (raw as { prompts: unknown[] }).prompts
+      : null
+  if (!list) return null
+
+  const entries: Array<{ title: string; body: string }> = []
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue
+    const title = typeof (item as { title?: unknown }).title === 'string' ? (item as { title: string }).title.trim() : ''
+    const body = typeof (item as { body?: unknown }).body === 'string' ? (item as { body: string }).body : ''
+    if (!title) continue
+    entries.push({ title, body })
+  }
+  return entries
+}
+
 // /presenter の「プロンプト配信」タブ本体。一覧はテーブル表示とし、
 // 作成・編集は PromptEditModal に委譲する。prompts(サーバー正)のみを保持し、
 // 進行中フラグは「どの行か」をIDで保持する方針は従来通り。
@@ -32,6 +54,10 @@ export function PromptBroadcastPanel() {
   const [editing, setEditing] = useState<Editing | null>(null)
   const [saving, setSaving] = useState(false)
   const [modalError, setModalError] = useState<string | null>(null)
+
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [importMessage, setImportMessage] = useState<string | null>(null)
 
   const [broadcast, setBroadcastState] = useState<Broadcast>(null)
   const [subscriberCount, setSubscriberCount] = useState(0)
@@ -150,6 +176,61 @@ export function PromptBroadcastPanel() {
     setSaving(false)
   }
 
+  // プロンプト一覧をファイル保存済みの形式({version, prompts})でそのままダウンロードする。
+  function handleExport() {
+    if (!prompts || prompts.length === 0) return
+    const data = { version: 1, prompts }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `presenter-prompts-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // 選択されたJSONを読み込み、1件ずつ新規プロンプトとして保存APIに投げる。
+  async function handleImportFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 同じファイルを連続して選び直せるようにする
+    if (!file) return
+
+    setError(null)
+    setImportMessage(null)
+    setImporting(true)
+    try {
+      const parsed = JSON.parse(await file.text())
+      const entries = parsePromptImportEntries(parsed)
+      if (!entries || entries.length === 0) {
+        setError('インポートできるプロンプトが見つかりませんでした')
+        return
+      }
+
+      let successCount = 0
+      let lastError: string | null = null
+      for (const entry of entries) {
+        const result = await savePromptRequest(entry)
+        if ('error' in result) {
+          lastError = result.error
+        } else {
+          successCount += 1
+          setPrompts(result.prompts)
+        }
+      }
+
+      if (successCount === 0) {
+        setError(lastError ?? 'インポートに失敗しました')
+      } else {
+        const skipped = entries.length - successCount
+        setImportMessage(`${successCount}件のプロンプトをインポートしました${skipped > 0 ? `（${skipped}件は失敗）` : ''}`)
+      }
+    } catch {
+      setError('JSONファイルの読み込みに失敗しました')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   async function handleDelete(id: string) {
     setDeletingId(id)
     setError(null)
@@ -180,23 +261,63 @@ export function PromptBroadcastPanel() {
           {error}
         </p>
       )}
+      {importMessage && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2">
+          {importMessage}
+        </p>
+      )}
 
       {/* プロンプト一覧 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-xs text-gray-400 dark:text-zinc-500">
           プロンプト一覧{prompts !== null && `（${prompts.length}件）`}
         </span>
-        <button
-          type="button"
-          onClick={() => { setEditing({ mode: 'create' }); setModalError(null) }}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ocean-700 hover:bg-ocean-50 dark:text-ocean-400 dark:hover:bg-ocean-900/20 transition-colors"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          新しいプロンプトを追加
-        </button>
+        <div className="flex items-center gap-1">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {importing ? 'インポート中...' : 'インポート'}
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={!prompts || prompts.length === 0}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            エクスポート
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEditing({ mode: 'create' }); setModalError(null) }}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ocean-700 hover:bg-ocean-50 dark:text-ocean-400 dark:hover:bg-ocean-900/20 transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            新しいプロンプトを追加
+          </button>
+        </div>
       </div>
 
       <div className="w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
