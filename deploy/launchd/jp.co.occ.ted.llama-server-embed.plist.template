@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTD/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>jp.co.occ.ted.llama-server-embed</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{LLAMA_SERVER_BIN}}</string>
+    <string>-m</string><string>{{MODELS_DIR}}/bge-m3/bge-m3-Q4_K_M.gguf</string>
+    <string>--embeddings</string>
+    <string>--pooling</string><string>cls</string>
+    <string>-ngl</string><string>999</string>
+    <string>--host</string><string>127.0.0.1</string>
+    <string>--port</string><string>8082</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/llama-server-embed.out.log</string>
+  <key>StandardErrorPath</key><string>/tmp/llama-server-embed.err.log</string>
+</dict>
+</plist>

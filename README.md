@@ -59,6 +59,35 @@ http://localhost:3000 を開きます。
 | `RAG_EMBED_QUERY_PREFIX` / `RAG_EMBED_DOC_PREFIX` | 埋め込みモデルが要求するプレフィックス | 空文字 |
 | `ANALYTICS_DB_PATH` | 利用統計SQLiteのファイルパス | `./data/analytics.db` |
 
+## 開催実績
+
+### 2026-09-18 社内研修（参加者30名）
+
+参加者30名が各自の端末からこのアプリに同時接続し、AIチャットのハンズオンを
+最後まで実施できました。以下の構成・設定で、再現できることを確認済みです。
+
+| 項目 | 当日の構成・設定 |
+|---|---|
+| サーバー | Mac Studio（Apple M4 Max / 36GBユニファイドメモリ）1台 |
+| アプリ | Docker（colima）上のこのアプリ（ポート8061）。`.env`は`.env.example`のまま |
+| llama.cpp | `llama-server` version 9590（d2462f8f7、Homebrew版）、`launchd`で常駐 |
+| モデル1（8080） | `gemma-4-E4B-it` Q4_K_M + mmproj Q8_0、`-ngl 999 --parallel 50 --ctx-size 204800` |
+| モデル2（8081） | `gemma-3n-E4B-it` Q4_K_M、`-ngl 999 --parallel 50 --ctx-size 204800` |
+| 埋め込み（8082） | `bge-m3` Q4_K_M、`--embeddings --pooling cls -ngl 999` |
+| その他 | `iogpu.wired_limit_mb`はOS既定値のまま（変更なし） |
+
+`--parallel`は参加者30名に対して余裕を持たせ50（1スロット4096トークン）で起動しています。
+当日の利用状況（`/presenter`「利用統計」の元データより集計）:
+
+- 実施時間: 9:54〜15:37、チャットリクエスト **820件、エラー0件**
+  （モデル1: 172件、モデル2: 648件）
+- ピーク: 1分あたり24リクエスト（10:30頃）
+- 応答完了までの平均時間: モデル1 約118秒、モデル2 約54秒（ストリーミングの生成完了まで。
+  長文生成や一斉送信時は数分かかる応答もあり、同時生成数が増えるほど1人あたりの速度は低下します）
+
+同規模（〜50名）の研修を再度行う場合は、下記「[参加人数に合わせた設定手順](#参加人数に合わせた設定手順)」
+で `scripts/llama-launchd.sh apply 50` を実行すれば当日と同じ設定になります。
+
 ## 複数人ハンズオンでのサーバー容量設計（参考値）
 
 本番サーバーは **Mac Studio（Apple M4 Max / 36GBユニファイドメモリ）** で、
@@ -115,16 +144,31 @@ Mac Studio（36GB）なら50名規模でも両モデルを同時にフル並列�
 （＝1スロット4096トークン×50）に設定済みです**（`~/Library/LaunchAgents/jp.co.occ.ted.llama-server.plist`
 ／`jp.co.occ.ted.llama-server-gemma3n.plist`）。実機で起動確認したところ、RSSは
 gemma-4-E4B-it ≒ 10.86 GiB、gemma-3n-E4B-it ≒ 7.24 GiB（合計 約18.1 GiB）で、
-上記の見積もりとほぼ一致し、36GBのうち十分な余裕を確認済みです。想定人数が変わる場合は
-両plistの`--parallel`（と、1スロット4096トークンを保つための`--ctx-size`＝`--parallel`×4096）
-を書き換えた上で、以下で再読み込みしてください。
+上記の見積もりとほぼ一致し、36GBのうち十分な余裕を確認済みです。この設定で2026-09-18に
+30名規模のハンズオンを実施しました（[開催実績](#開催実績)）。
+
+### 参加人数に合わせた設定手順
+
+launchdのplistは [`deploy/launchd/`](./deploy/launchd/) にテンプレートとして管理しており、
+[`scripts/llama-launchd.sh`](./scripts/llama-launchd.sh) で参加人数を指定して生成・再読み込みできます。
+`--parallel`＝参加人数、`--ctx-size`＝参加人数×4096（1スロット4096トークンを維持）に自動設定されます。
 
 ```bash
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server.plist
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server-gemma3n.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/jp.co.occ.ted.llama-server-gemma3n.plist
+scripts/llama-launchd.sh status              # 現在の --parallel / --ctx-size / RSS / 稼働状況を確認
+scripts/llama-launchd.sh estimate 30         # 必要メモリの見積もりだけを表示（上記の計算式）
+scripts/llama-launchd.sh apply 50 --dry-run  # 変更内容の差分だけを表示（何も変更しない）
+scripts/llama-launchd.sh apply 50            # plistを配置して、変更があったサーバーだけ再起動
 ```
+
+- `apply`は既存のplistを`*.plist.bak.<日時>`に退避してから上書きし、各サーバーの`/health`が
+  応答するまで待ちます。見積もりが搭載メモリを超える人数は拒否します
+- 当日と同じ設定にするには `apply 50`（2026-09-18の実績値）。参加人数ちょうどではなく、
+  途中参加やタブの二重接続を見込んで多めに設定するのがおすすめです
+- 別のMacに構築する場合も、モデルを `~/Models/llama.cpp/` 配下に同じ構成で置けば
+  そのまま使えます。配置先が異なる場合は `MODELS_DIR=/path/to/models`、
+  `llama-server`の場所が異なる場合は `LLAMA_SERVER_BIN=/path/to/llama-server` を付けて実行してください
+- 研修の前日までに `apply` → `status` で全サーバーが `{"status":"ok"}` になることを確認し、
+  可能であれば数名で同時にチャットして応答を確かめておくと安心です
 
 またApple SiliconはGPU（Metal）が使えるメモリに既定の上限があるため、`--parallel`を大きく
 増やす場合は事前に上限を引き上げてください（現状 `iogpu.wired_limit_mb=0` ＝OS既定値のまま。

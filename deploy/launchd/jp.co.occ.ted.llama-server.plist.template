@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTD/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>jp.co.occ.ted.llama-server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{LLAMA_SERVER_BIN}}</string>
+    <string>-m</string><string>{{MODELS_DIR}}/gemma-4-E4B-it/gemma-4-E4B-it-Q4_K_M.gguf</string>
+    <string>--mmproj</string><string>{{MODELS_DIR}}/gemma-4-E4B-it/mmproj-gemma-4-E4B-it-Q8_0.gguf</string>
+    <string>-ngl</string><string>999</string>
+    <string>--host</string><string>127.0.0.1</string>
+    <string>--port</string><string>8080</string>
+    <string>--ctx-size</string><string>{{CTX_SIZE}}</string>
+    <string>--parallel</string><string>{{PARALLEL}}</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/llama-server.out.log</string>
+  <key>StandardErrorPath</key><string>/tmp/llama-server.err.log</string>
+</dict>
+</plist>
