@@ -12,6 +12,7 @@
     <string>--port</string><string>8081</string>
     <string>--ctx-size</string><string>{{CTX_SIZE}}</string>
     <string>--parallel</string><string>{{PARALLEL}}</string>
+    <string>--cache-ram</string><string>{{CACHE_RAM_MIB}}</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

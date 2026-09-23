@@ -11,6 +11,8 @@
 #   LLAMA_SERVER_BIN  llama-server のパス（既定: PATH上の llama-server）
 #   MODELS_DIR        GGUFモデルの配置先（既定: $HOME/Models/llama.cpp）
 #   CTX_PER_SLOT      1スロット（1人）あたりのコンテキスト長（既定: 4096）
+#   CACHE_RAM_MIB     チャット用サーバー1台あたりのプロンプトキャッシュ上限MiB（--cache-ram、既定: 2048）
+#                     llama-serverの既定は8192で、長時間の多人数利用で1台最大8GiBまで膨らむため絞っている
 #
 # 見積もり式・係数は README「複数人ハンズオンでのサーバー容量設計」の実測値に合わせている。
 
@@ -22,6 +24,7 @@ AGENTS_DIR="$HOME/Library/LaunchAgents"
 LLAMA_SERVER_BIN="${LLAMA_SERVER_BIN:-$(command -v llama-server || echo /opt/homebrew/bin/llama-server)}"
 MODELS_DIR="${MODELS_DIR:-$HOME/Models/llama.cpp}"
 CTX_PER_SLOT="${CTX_PER_SLOT:-4096}"
+CACHE_RAM_MIB="${CACHE_RAM_MIB:-2048}"
 
 # ラベル:ポート。チャット用2つは参加人数に合わせて並列数を変える。
 CHAT_SERVICES=("jp.co.occ.ted.llama-server:8080" "jp.co.occ.ted.llama-server-gemma3n:8081")
@@ -39,17 +42,21 @@ require_number() {
 # 必要メモリの見積もり（GiB）。README の計算式と同じ。
 estimate() {
   local n="$1"
-  awk -v n="$n" -v c="$CTX_PER_SLOT" -v mem="$(sysctl -n hw.memsize)" 'BEGIN {
+  awk -v n="$n" -v c="$CTX_PER_SLOT" -v cram="$CACHE_RAM_MIB" -v mem="$(sysctl -n hw.memsize)" 'BEGIN {
     g4  = 5.49 + 0.24 + 0.04 * n + n * c * 0.015 / 1024
     g3n = 3.95 + 0.11 + 0.03 * n + n * c * 0.008 / 1024
     total = 5 + g4 + g3n
+    # プロンプトキャッシュはGPUではなくホスト側のメモリ。使い込むと2台で最大この分まで増える。
+    cache = 2 * (cram < 0 ? 0 : cram) / 1024
     physical = mem / 1024 / 1024 / 1024
-    printf "参加人数 %d名（--parallel %d / --ctx-size %d）の見積もり\n", n, n, n * c
+    printf "参加人数 %d名（--parallel %d / --ctx-size %d / --cache-ram %d）の見積もり\n", n, n, n * c, cram
     printf "  gemma-4-E4B-it  (8080): 約 %.1f GiB\n", g4
     printf "  gemma-3n-E4B-it (8081): 約 %.1f GiB\n", g3n
     printf "  OS分を含む合計        : 約 %.1f GiB / 搭載メモリ %.0f GiB\n", total, physical
+    if (cram < 0) print "  +プロンプトキャッシュ : 上限なし\n  [注意] CACHE_RAM_MIB=-1 はキャッシュ上限なしです。長時間の利用でメモリが増え続ける可能性があります"
+    else printf "  +プロンプトキャッシュ : 最大 %.1f GiB（2台分。上限まで使い切った場合 合計 約 %.1f GiB）\n", cache, total + cache
     # Metalが既定で使えるのは搭載メモリのおよそ2/3〜3/4。超える場合は警告する。
-    if (total > physical * 0.9)       { print "  [NG] 搭載メモリを超える見込みです。人数かCTX_PER_SLOTを減らしてください"; exit 2 }
+    if (total + cache > physical * 0.9) { print "  [NG] 搭載メモリを超える見込みです。人数・CTX_PER_SLOT・CACHE_RAM_MIBを減らしてください"; exit 2 }
     else if (total > physical * 0.66) { print "  [注意] Metalの既定上限を超える可能性があります。iogpu.wired_limit_mb の引き上げを検討してください" }
     else                              { print "  [OK] 余裕を持って収まる見込みです" }
   }'
@@ -61,6 +68,7 @@ render() {
       -e "s|{{MODELS_DIR}}|$MODELS_DIR|g" \
       -e "s|{{PARALLEL}}|$parallel|g" \
       -e "s|{{CTX_SIZE}}|$((parallel * CTX_PER_SLOT))|g" \
+      -e "s|{{CACHE_RAM_MIB}}|$CACHE_RAM_MIB|g" \
       "$TEMPLATE_DIR/$label.plist.template" > "$out"
   plutil -lint -s "$out"
 }
@@ -127,20 +135,23 @@ cmd_apply() {
 }
 
 cmd_status() {
-  local entry label port plist pid parallel ctx rss health
-  printf "%-36s %-6s %-9s %-9s %-10s %s\n" LABEL PORT PARALLEL CTX RSS HEALTH
+  local entry label port plist pid parallel ctx cram rss health
+  printf "%-36s %-6s %-9s %-9s %-10s %-10s %s\n" LABEL PORT PARALLEL CTX CACHE_RAM RSS HEALTH
   for entry in "${CHAT_SERVICES[@]}" "$EMBED_SERVICE"; do
     label="${entry%%:*}"; port="${entry##*:}"; plist="$AGENTS_DIR/$label.plist"
-    parallel="-"; ctx="-"
+    parallel="-"; ctx="-"; cram="-"
     if [[ -f "$plist" ]]; then
       parallel="$(sed -n 's/.*--parallel<\/string><string>\([0-9]*\)<.*/\1/p' "$plist")"
       ctx="$(sed -n 's/.*--ctx-size<\/string><string>\([0-9]*\)<.*/\1/p' "$plist")"
+      cram="$(sed -n 's/.*--cache-ram<\/string><string>\(-\{0,1\}[0-9]*\)<.*/\1/p' "$plist")"
     fi
+    # チャット用で --cache-ram 未指定なら llama-server の既定値(8192MiB)で動いている
+    [[ -f "$plist" && -z "$cram" && "$entry" != "$EMBED_SERVICE" ]] && cram="8192(既定)"
     pid="$(launchctl list | awk -v l="$label" '$3 == l { print $1 }')"
     rss="-"
     [[ -n "$pid" && "$pid" != "-" ]] && rss="$(ps -o rss= -p "$pid" | awk '{ printf "%.2fGiB", $1 / 1024 / 1024 }')"
     health="$(curl -fsS -m 2 "http://127.0.0.1:$port/health" 2>/dev/null || echo down)"
-    printf "%-36s %-6s %-9s %-9s %-10s %s\n" "$label" "$port" "${parallel:--}" "${ctx:--}" "$rss" "$health"
+    printf "%-36s %-6s %-9s %-9s %-10s %-10s %s\n" "$label" "$port" "${parallel:--}" "${ctx:--}" "${cram:--}" "$rss" "$health"
   done
 }
 
