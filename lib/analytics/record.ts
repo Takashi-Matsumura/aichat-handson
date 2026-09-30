@@ -18,10 +18,16 @@ type RecordInput = {
   errorMessage?: string
 }
 
+// 分類(カテゴリ判定)に使うのはプロンプト・応答それぞれの先頭部分だけで十分。全文を送ると、
+// 長い入力のたびにチャットと同じ llama.cpp のスロットを分類(再試行込みで最大6回)が長時間占有する。
+const CLASSIFY_MAX_CHARS = 2000
+
 export async function recordAndClassify(input: RecordInput): Promise<void> {
   const status = input.status ?? 'success'
-  const { masked: promptMasked } = maskText(input.promptText)
-  const responseMasked = input.responseText ? maskText(input.responseText).masked : undefined
+  const { masked: promptMasked } = maskText(input.promptText.slice(0, CLASSIFY_MAX_CHARS))
+  const responseMasked = input.responseText
+    ? maskText(input.responseText.slice(0, CLASSIFY_MAX_CHARS)).masked
+    : undefined
   const id = crypto.randomUUID()
 
   addRequest({
