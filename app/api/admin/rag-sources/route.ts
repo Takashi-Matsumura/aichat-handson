@@ -1,8 +1,9 @@
 // /presenter の「RAGソース」タブから、知識ソースファイルの一覧取得・新規作成・上書き保存・削除を行う。
-// admin/model-lock, admin/rag-reindex と同様に認証は行わない（このアプリ全体の方針）。
+// 講師のみ利用できる(lib/presenter/auth.ts の requirePresenter)。
 
 import { deleteSourceContent, listSourceContents, saveSourceContent } from '@/lib/rag/sources'
 import { rebuildIndex } from '@/lib/rag/indexer'
+import { requirePresenter } from '@/lib/presenter/auth'
 
 // 変更操作(POST/DELETE)後に反映結果が見えるよう、その場で再構築してから状態を返す。
 async function rebuiltStatus() {
@@ -16,12 +17,16 @@ async function rebuiltStatus() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requirePresenter(request)
+  if (denied) return denied
   const sources = await listSourceContents()
   return Response.json({ sources })
 }
 
 export async function POST(request: Request) {
+  const denied = await requirePresenter(request)
+  if (denied) return denied
   const { relPath, content } = await request.json()
   if (typeof relPath !== 'string' || typeof content !== 'string') {
     return Response.json({ error: 'relPathとcontentが必要です' }, { status: 400 })
@@ -34,6 +39,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = await requirePresenter(request)
+  if (denied) return denied
   const { relPath } = await request.json()
   if (typeof relPath !== 'string') {
     return Response.json({ error: 'relPathが必要です' }, { status: 400 })

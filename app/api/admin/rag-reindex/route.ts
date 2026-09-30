@@ -1,10 +1,12 @@
 // /presenter からRAGインデックスを即座に再構築するためのAPI。
-// admin/model-lock と同様に認証は行わない(このアプリ全体がログイン無しの方針のため)。
-// 無認証で誰でも叩けるが、実害は再構築1回分の負荷のみなので許容する。
+// 講師のみ利用できる(lib/presenter/auth.ts の requirePresenter)。
 
 import { rebuildIndex } from '@/lib/rag/indexer'
+import { requirePresenter } from '@/lib/presenter/auth'
 
-export async function POST() {
+export async function POST(request: Request) {
+  const denied = await requirePresenter(request)
+  if (denied) return denied
   const index = await rebuildIndex()
   return Response.json({
     fileCount: index.fileCount,
