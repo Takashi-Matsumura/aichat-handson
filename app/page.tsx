@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, FormEvent } from 'react'
+import { startTransition, useState, useRef, useEffect, FormEvent } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -111,6 +111,7 @@ export default function Home() {
     2: { model: null, label: null, online: false, ctxSize: null },
   })
   const [usedTokens, setUsedTokens] = useState(0)
+  const displayedUsedTokens = messages.length === 0 ? 0 : usedTokens
   const tokenizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messagesSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -165,7 +166,8 @@ export default function Home() {
   useEffect(() => {
     if (loading) return
     if (tokenizeTimerRef.current) clearTimeout(tokenizeTimerRef.current)
-    if (messages.length === 0) { setUsedTokens(0); return }
+    // 会話が空のときの表示(0)は displayedUsedTokens で導くので、ここでは計算しない。
+    if (messages.length === 0) return
     tokenizeTimerRef.current = setTimeout(async () => {
       const allContent = messages.map((m) => m.content).join('\n\n')
       if (!allContent.trim()) { setUsedTokens(0); return }
@@ -183,22 +185,27 @@ export default function Home() {
   }, [messages, loading, selectedModel])
 
   useEffect(() => {
-    try {
-      const savedMessages = sessionStorage.getItem(MESSAGES_STORAGE_KEY)
-      if (savedMessages) {
-        const parsed = JSON.parse(savedMessages)
-        if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed)
+    // ブラウザに保存した会話と設定を復元する。サーバー側で描画したHTMLと食い違わないよう
+    // 初期値(useStateの初期化)ではなく読み込み後に反映し、緊急でない更新として扱う
+    // (app/analytics/page.tsx と同じ書き方)。
+    startTransition(() => {
+      try {
+        const savedMessages = sessionStorage.getItem(MESSAGES_STORAGE_KEY)
+        if (savedMessages) {
+          const parsed = JSON.parse(savedMessages)
+          if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed)
+        }
+      } catch {
+        // 壊れたデータは無視して空の会話から始める
       }
-    } catch {
-      // 壊れたデータは無視して空の会話から始める
-    }
 
-    setPanelOpen(localStorage.getItem('handson-panel-open') === 'true')
-    setThinking(localStorage.getItem('thinking-mode') === 'true')
-    setRagMode(localStorage.getItem('rag-mode') === 'true')
-    const saved = localStorage.getItem('selected-model')
-    if (saved === '2') setSelectedModel(2)
-    setPanelMounted(true)
+      setPanelOpen(localStorage.getItem('handson-panel-open') === 'true')
+      setThinking(localStorage.getItem('thinking-mode') === 'true')
+      setRagMode(localStorage.getItem('rag-mode') === 'true')
+      const saved = localStorage.getItem('selected-model')
+      if (saved === '2') setSelectedModel(2)
+      setPanelMounted(true)
+    })
 
     // RAGの知識ソースが登録されているか(=トグルを有効にできるか)を確認する。
     // このリクエスト自体がインデックス構築のウォームアップも兼ねる。
@@ -1016,7 +1023,7 @@ export default function Home() {
               if (isEmpty) return null
               const ctxSize = modelInfos[selectedModel].ctxSize
               if (!ctxSize) return null
-              const pct = Math.min((usedTokens / ctxSize) * 100, 100)
+              const pct = Math.min((displayedUsedTokens / ctxSize) * 100, 100)
               return (
                 <div className="mb-2 flex items-center gap-2 text-xs text-gray-400 dark:text-zinc-500">
                   <span className="flex-none">コンテキスト</span>
@@ -1029,7 +1036,7 @@ export default function Home() {
                     />
                   </div>
                   <span className="flex-none tabular-nums">
-                    {usedTokens.toLocaleString()} / {ctxSize.toLocaleString()}
+                    {displayedUsedTokens.toLocaleString()} / {ctxSize.toLocaleString()}
                   </span>
                 </div>
               )
@@ -1173,7 +1180,6 @@ export default function Home() {
           isOpen={panelOpen}
           isFull={panelFull}
           onSetFull={setPanelFull}
-          onClose={togglePanel}
           onUsePrompt={applyPromptText}
           onPageChange={() => {
             // 「AIの推論とエージェント」（gemma-4-12b使用）を一時非表示にしたため、

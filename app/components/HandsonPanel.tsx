@@ -12,7 +12,6 @@ type Props = {
   isFull: boolean
   onSetFull: (full: boolean) => void
   onUsePrompt: (text: string) => void
-  onClose: () => void
   onPageChange?: (pageId: number) => void
 }
 
@@ -39,7 +38,7 @@ function extractText(node: React.ReactNode): string {
 const FONT_SIZES = [0.75, 0.875, 1.0, 1.25, 1.5, 1.75]
 const DEFAULT_FONT_SIZE_INDEX = 1
 
-export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, onClose, onPageChange }: Props) {
+export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, onPageChange }: Props) {
   const [currentPage, setCurrentPage] = useState(1)
   const [contents, setContents] = useState<Record<number, string>>({})
   const [fetchError, setFetchError] = useState<Record<number, boolean>>({})
