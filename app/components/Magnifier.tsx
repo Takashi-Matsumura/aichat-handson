@@ -15,9 +15,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 const ZOOM_STEPS = [1.5, 2, 2.5, 3, 4]
 const DEFAULT_ZOOM = 2
-// 矢印キー1回で動かす量(画面上のピクセル)。Shift 併用で大きく動かす。
+// 矢印キー1回で動かす量(画面上のピクセル)。Shift+矢印キーはその方向の端まで一気に移動する。
 const PAN_STEP_PX = 80
-const PAN_STEP_LARGE_PX = 320
 const TRANSITION = 'transform 120ms ease-out'
 
 const ARROW_DELTAS: Record<string, [number, number]> = {
@@ -181,11 +180,19 @@ export default function Magnifier({ children }: { children: ReactNode }) {
       const delta = ARROW_DELTAS[e.key]
       if (delta) {
         if (editable) return
-        // 押しっぱなし(repeat)でも連続して動かす。
         e.preventDefault()
-        const step = (e.shiftKey ? PAN_STEP_LARGE_PX : PAN_STEP_PX) / zoomRef.current
         const v = viewRef.current
-        viewRef.current = { x: v.x + delta[0] * step, y: v.y + delta[1] * step }
+        if (e.shiftKey) {
+          // その方向の端まで一気に移動する。範囲外の値は applyTransform がページ端に収める。
+          viewRef.current = {
+            x: delta[0] === 0 ? v.x : delta[0] < 0 ? 0 : Infinity,
+            y: delta[1] === 0 ? v.y : delta[1] < 0 ? 0 : Infinity,
+          }
+        } else {
+          // 押しっぱなし(repeat)でも連続して動かす。
+          const step = PAN_STEP_PX / zoomRef.current
+          viewRef.current = { x: v.x + delta[0] * step, y: v.y + delta[1] * step }
+        }
         applyTransform()
         return
       }
@@ -273,7 +280,7 @@ export default function Magnifier({ children }: { children: ReactNode }) {
 
       {on && showHint && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[101] max-w-sm px-3 py-2 rounded-lg bg-gray-900/90 text-white text-xs text-center shadow-lg">
-          矢印キーで表示範囲を移動（Shift で大きく）、＋/− で倍率変更、Esc で終了します。
+          矢印キーで表示範囲を移動（Shift+矢印キーで端まで移動）、＋/− で倍率変更、Esc で終了します。
           入力欄にカーソルがあるときは、矢印キーは文字の移動に使われます。
         </div>
       )}
