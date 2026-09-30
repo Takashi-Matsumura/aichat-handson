@@ -25,15 +25,41 @@ const ANALYTICS_MODEL_NAMES: Record<number, string> = {
 // 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
 const MAX_TOKENS = Number(process.env.LLAMA_MAX_TOKENS ?? 2048)
 
+// 1リクエストで受け付ける会話履歴の上限。受講者の通常利用では到達しない値にしてあり、
+// 巨大なペイロードで推論サーバーを占有される(会場全体が詰まる)のを防ぐためのもの。
+const MAX_MESSAGES = 200
+const MAX_TOTAL_CHARS = 100_000
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string }
+
+// クライアントから受け取った messages を検証する。systemロールはサーバー側
+// (思考プロセス指示・RAGのcontext)だけが付与するため、クライアントからは受け付けない。
+function parseMessages(value: unknown): ChatMessage[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MESSAGES) return null
+  let totalChars = 0
+  const messages: ChatMessage[] = []
+  for (const m of value) {
+    if (!m || typeof m !== 'object') return null
+    const { role, content } = m as { role?: unknown; content?: unknown }
+    if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') return null
+    totalChars += content.length
+    if (totalChars > MAX_TOTAL_CHARS) return null
+    messages.push({ role, content })
+  }
+  return messages
+}
+
 // 受講者を「ログインユーザー」の代わりに識別するための擬似セッションID。
 // 認証は行わず、ブラウザに保存されるこのCookieの値をそのまま利用状況分析のキーにする。
 const SESSION_COOKIE = 'handson_sid'
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // このリクエストの擬似セッションIDを取得(無ければ新規発行)する。
 // 新規発行時は呼び出し側でレスポンスに Set-Cookie ヘッダを付与すること。
+// 自分で発行した形式(UUID)以外の値は信用せず、発行し直す。
 function getOrCreateSessionId(request: NextRequest): { sid: string; setCookieHeader?: string } {
   const existing = request.cookies.get(SESSION_COOKIE)?.value
-  if (existing) return { sid: existing }
+  if (existing && UUID_PATTERN.test(existing)) return { sid: existing }
   const sid = crypto.randomUUID()
   return { sid, setCookieHeader: `${SESSION_COOKIE}=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800` }
 }
@@ -47,7 +73,15 @@ function lastUserMessageContent(messages: { role: string; content: string }[]): 
 }
 
 export async function POST(request: NextRequest) {
-  const { messages, thinking, modelIndex, rag } = await request.json()
+  const payload = await request.json().catch(() => null)
+  const messages = parseMessages(payload?.messages)
+  if (!messages) {
+    return Response.json(
+      { error: `会話が長すぎるか、形式が正しくありません(最大${MAX_MESSAGES}件・合計${MAX_TOTAL_CHARS}文字)。新しい会話を始めてください。` },
+      { status: 400 }
+    )
+  }
+  const { thinking, modelIndex, rag } = payload
   const n = modelIndex === 2 ? 2 : 1
   // フロント側の制御をすり抜けて直接APIが叩かれた場合の保険。
   if (n === 1 && !isModel1Enabled()) {
@@ -105,8 +139,13 @@ export async function POST(request: NextRequest) {
     )
   }
   if (!upstream.ok) {
-    const text = await upstream.text()
-    return Response.json({ error: text }, { status: upstream.status })
+    // 上流のエラー本文には内部構成(モデルのパス等)が含まれうるため、サーバーログにだけ残す。
+    const text = await upstream.text().catch(() => '')
+    console.error(`[chat] llama.cpp returned ${upstream.status}: ${text.slice(0, 1000)}`)
+    return Response.json(
+      { error: `AIサーバーでエラーが発生しました(${upstream.status})。しばらくしてから再度お試しください。` },
+      { status: 502 }
+    )
   }
 
   // 利用状況分析のため、クライアントへ流すストリームとは別にもう1本複製(tee)して

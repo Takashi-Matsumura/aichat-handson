@@ -1,5 +1,11 @@
 .git
 .next
 node_modules
-.env*.local
 knowledge
+# 秘密情報(.env / .env.local 等)。サンプル(.env*.example)だけはビルドコンテキストに含めてよい
+.env*
+!.env*.example
+# 実行時データ(利用統計DB・配信プロンプト)。ボリュームマウントで渡すものでイメージには入れない
+data
+# ローカルのレビュー記録など
+security-review-*.md
