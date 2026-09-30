@@ -1184,7 +1184,10 @@ export default function Home() {
           onPageChange={() => {
             // 「AIの推論とエージェント」（gemma-4-12b使用）を一時非表示にしたため、
             // ハンズオン中は常に gemma-3-4b（model 2）を使う。
-            switchModel(2)
+            // switchModel は会話を空にするため、すでにモデル2なら呼ばない。パネルは表示時・
+            // 開いた時にもこれを呼ぶので、無条件に呼ぶとブラウザから復元した会話や
+            // 進行中の会話が消えてしまう。
+            if (selectedModel !== 2) switchModel(2)
           }}
         />
       </div>
