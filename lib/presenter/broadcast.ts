@@ -52,7 +52,14 @@ function notify(): void {
   for (const listener of state.listeners) listener(state.current)
 }
 
-export function subscribe(listener: Listener): () => void {
+// 同時に購読できる接続数の上限。会場規模(数十〜数百人・1人数タブ)に対して十分大きく、
+// 無認証のSSEを大量に張られてもメモリ・ソケット・タイマーが際限なく増えないようにする。
+// 接続元IPはクライアントが偽装できる(X-Forwarded-For)ため、IP単位ではなく全体で数える。
+export const MAX_SUBSCRIBERS = 500
+
+// 上限に達している場合は購読せず null を返す。
+export function subscribe(listener: Listener): (() => void) | null {
+  if (state.listeners.size >= MAX_SUBSCRIBERS) return null
   state.listeners.add(listener)
   return () => {
     state.listeners.delete(listener)

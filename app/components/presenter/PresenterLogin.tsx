@@ -63,7 +63,7 @@ export function PresenterLogin({ configured }: { configured: boolean }) {
           </>
         ) : (
           <p className="text-sm text-red-600 dark:text-red-400">
-            環境変数 PRESENTER_PASSWORD が設定されていないため、管理者画面は無効です。
+            環境変数 PRESENTER_PASSWORD が未設定か12文字未満のため、管理者画面は無効です。
             設定してからサーバーを再起動してください。
           </p>
         )}
