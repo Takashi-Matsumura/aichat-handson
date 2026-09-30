@@ -12,6 +12,7 @@ import {
   takeLoginAttempt,
   verifyPassword,
 } from '@/lib/presenter/auth'
+import { readJsonObject } from '@/lib/http/json'
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       { status: 429, headers: { 'Retry-After': '5' } }
     )
   }
-  const { password } = await request.json().catch(() => ({}))
+  const { password } = (await readJsonObject(request)) ?? {}
   if (typeof password !== 'string' || !verifyPassword(password)) {
     return Response.json({ error: 'パスワードが違います' }, { status: 401 })
   }

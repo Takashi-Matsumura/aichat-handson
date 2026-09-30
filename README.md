@@ -340,6 +340,7 @@ docker compose up -d --build  # コードや.envの変更を反映して再起�
 ```bash
 npm run lint        # ESLint
 npx tsc --noEmit     # 型チェック
+npm test             # 単体テスト（Vitest。lib/ 配下のサーバー側の処理が対象）
 npm run build        # 本番ビルド
 ```
 

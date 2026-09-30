@@ -5,17 +5,15 @@ import { estimateCost } from '@/lib/analytics/pricing'
 import { isModel1Enabled } from '@/lib/settings/store'
 import { retrieve } from '@/lib/rag/search'
 import { buildContextBlock, toSourceRefs, type SourceRef } from '@/lib/rag/prompt'
+import { LLAMA_MODEL, LLAMA_URLS } from '@/lib/llama/config'
+import { MAX_MESSAGES, MAX_TOTAL_CHARS, parseMessages } from '@/lib/chat/limits'
+import { readJsonObject } from '@/lib/http/json'
 
 // 推論モード(thinking)のsystemプロンプト。RAGのcontextと連結する都合上、定数化する。
 const THINKING_SYSTEM_PROMPT =
   'あなたは丁寧に考えてから回答するAIアシスタントです。回答する前に必ず <think> と </think> タグで囲んで日本語で思考プロセスを記述し、その後に最終的な回答を記述してください。'
 
-const LLAMA_URLS: Record<number, string> = {
-  1: process.env.LLAMA_API_URL ?? 'http://localhost:8080',
-  2: process.env.LLAMA_API_URL_2 ?? 'http://localhost:8081',
-}
-const MODEL = process.env.LLAMA_MODEL ?? 'gemma4'
-// llama.cpp へのリクエストで送るモデル名(MODEL)は環境変数1つの共通値だが、
+// llama.cpp へのリクエストで送るモデル名(LLAMA_MODEL)は環境変数1つの共通値だが、
 // 利用状況分析・推定コスト算出のためにはモデル1/2を区別した実際のモデル名が要る。
 const ANALYTICS_MODEL_NAMES: Record<number, string> = {
   1: 'gemma-4-12b',
@@ -24,32 +22,6 @@ const ANALYTICS_MODEL_NAMES: Record<number, string> = {
 // 1リクエストあたりの生成トークン数の上限。モデルが reasoning_content を延々と吐き続けるなど
 // 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
 const MAX_TOKENS = Number(process.env.LLAMA_MAX_TOKENS ?? 2048)
-
-// 1リクエストで受け付ける会話履歴の上限。巨大な入力で推論サーバーのスロットを長時間
-// 占有される(会場全体が詰まる)のを防ぐためのもの。文字数はペイロードだけでなく推論時間にも
-// 効くため小さめにしてある(モデル2では10万文字近い入力1件で約2分占有された)。
-// 長い会話で上限に達した受講者には、新しい会話を始めるよう案内する。
-const MAX_MESSAGES = 200
-const MAX_TOTAL_CHARS = 30_000
-
-type ChatMessage = { role: 'user' | 'assistant'; content: string }
-
-// クライアントから受け取った messages を検証する。systemロールはサーバー側
-// (思考プロセス指示・RAGのcontext)だけが付与するため、クライアントからは受け付けない。
-function parseMessages(value: unknown): ChatMessage[] | null {
-  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MESSAGES) return null
-  let totalChars = 0
-  const messages: ChatMessage[] = []
-  for (const m of value) {
-    if (!m || typeof m !== 'object') return null
-    const { role, content } = m as { role?: unknown; content?: unknown }
-    if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') return null
-    totalChars += content.length
-    if (totalChars > MAX_TOTAL_CHARS) return null
-    messages.push({ role, content })
-  }
-  return messages
-}
 
 // 受講者を「ログインユーザー」の代わりに識別するための擬似セッションID。
 // 認証は行わず、ブラウザに保存されるこのCookieの値をそのまま利用状況分析のキーにする。
@@ -75,7 +47,7 @@ function lastUserMessageContent(messages: { role: string; content: string }[]): 
 }
 
 export async function POST(request: NextRequest) {
-  const payload = await request.json().catch(() => null)
+  const payload = await readJsonObject(request)
   const messages = parseMessages(payload?.messages)
   if (!messages) {
     return Response.json(
@@ -83,7 +55,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   }
-  const { thinking, modelIndex, rag } = payload
+  const { thinking, modelIndex, rag } = payload!
   const n = modelIndex === 2 ? 2 : 1
   // フロント側の制御をすり抜けて直接APIが叩かれた場合の保険。
   if (n === 1 && !isModel1Enabled()) {
@@ -127,7 +99,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
+        model: LLAMA_MODEL,
         messages: allMessages,
         stream: true,
         stream_options: { include_usage: true },
@@ -155,7 +127,7 @@ export async function POST(request: NextRequest) {
   // クライアント側のストリーミング体感は変わらない。
   const [toClient, toSniff] = upstream.body!.tee()
   const startedAt = Date.now()
-  const analyticsModel = ANALYTICS_MODEL_NAMES[n] ?? MODEL
+  const analyticsModel = ANALYTICS_MODEL_NAMES[n] ?? LLAMA_MODEL
   after(async () => {
     const { text, usage } = await drainAssistantStream(toSniff)
     await recordAndClassify({

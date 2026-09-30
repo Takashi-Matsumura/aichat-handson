@@ -4,6 +4,7 @@
 
 import { deletePrompt, listPrompts, reorderPrompts, savePrompt } from '@/lib/presenter/prompts'
 import { requirePresenter } from '@/lib/presenter/auth'
+import { invalidJsonResponse, readJsonObject } from '@/lib/http/json'
 
 export async function GET(request: Request) {
   const denied = await requirePresenter(request)
@@ -15,7 +16,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const denied = await requirePresenter(request)
   if (denied) return denied
-  const { id, title, body } = await request.json()
+  const payload = await readJsonObject(request)
+  if (!payload) return invalidJsonResponse()
+  const { id, title, body } = payload
   if (typeof title !== 'string' || typeof body !== 'string') {
     return Response.json({ error: 'titleとbodyが必要です' }, { status: 400 })
   }
@@ -30,7 +33,9 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const denied = await requirePresenter(request)
   if (denied) return denied
-  const { ids } = await request.json()
+  const body = await readJsonObject(request)
+  if (!body) return invalidJsonResponse()
+  const { ids } = body
   if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string')) {
     return Response.json({ error: 'idsが必要です' }, { status: 400 })
   }
@@ -45,7 +50,9 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   const denied = await requirePresenter(request)
   if (denied) return denied
-  const { id } = await request.json()
+  const body = await readJsonObject(request)
+  if (!body) return invalidJsonResponse()
+  const { id } = body
   if (typeof id !== 'string') {
     return Response.json({ error: 'idが必要です' }, { status: 400 })
   }

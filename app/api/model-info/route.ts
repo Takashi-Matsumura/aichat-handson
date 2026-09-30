@@ -1,18 +1,10 @@
 import { NextRequest } from 'next/server'
-
-const LLAMA_URLS: Record<number, string> = {
-  1: process.env.LLAMA_API_URL ?? 'http://localhost:8080',
-  2: process.env.LLAMA_API_URL_2 ?? 'http://localhost:8081',
-}
-
-const LLAMA_LABELS: Record<number, string | undefined> = {
-  1: process.env.LLAMA_MODEL_LABEL_1,
-  2: process.env.LLAMA_MODEL_LABEL_2,
-}
+import { LLAMA_MODEL_LABELS as LLAMA_LABELS, LLAMA_URLS, type ModelIndex } from '@/lib/llama/config'
 
 export async function GET(request: NextRequest) {
-  const n = Math.max(1, Math.min(2, Number(request.nextUrl.searchParams.get('n') ?? '1')))
-  const LLAMA_URL = LLAMA_URLS[n] ?? LLAMA_URLS[1]
+  // ?n=2 以上はモデル2、それ以外(数値でない値を含む)はモデル1として扱う。
+  const n: ModelIndex = Number(request.nextUrl.searchParams.get('n') ?? '1') >= 2 ? 2 : 1
+  const LLAMA_URL = LLAMA_URLS[n]
   try {
     const [modelsRes, slotsRes] = await Promise.all([
       fetch(`${LLAMA_URL}/v1/models`, { cache: 'no-store' }),
