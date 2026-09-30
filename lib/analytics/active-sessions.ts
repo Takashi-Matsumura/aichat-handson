@@ -6,13 +6,25 @@
 
 type SessionMap = Map<string, Date>;
 
+// 保持するセッション数の上限。会場規模(数十〜数百人)に対して十分大きく、
+// Cookieを差し替えながら大量にリクエストされてもメモリが際限なく増えないようにする。
+const MAX_SESSIONS = 10_000;
+
 const globalForSessions = globalThis as unknown as { __activeSessions?: SessionMap };
 
 const sessions: SessionMap =
   globalForSessions.__activeSessions ?? (globalForSessions.__activeSessions = new Map());
 
+// Mapは挿入順を保つので、削除してから入れ直すと「最後に使われた順」に並ぶ。
+// 上限を超えたら最も長く使われていないものから捨てる。
 export function registerActiveSession(sessionId: string): void {
+  sessions.delete(sessionId);
   sessions.set(sessionId, new Date());
+  while (sessions.size > MAX_SESSIONS) {
+    const oldest = sessions.keys().next().value;
+    if (oldest === undefined) break;
+    sessions.delete(oldest);
+  }
 }
 
 export function getActiveSessionCount(from: Date, to: Date): number {
