@@ -1,14 +1,8 @@
 // RAGで検索・参照した資料を表示する折りたたみパネル。
-// app/page.tsx の思考プロセスパネル(amber系)と同じ構造(ヘッダーボタン+chevron+区切り本文)を
+// app/components/chat/ChatMessageItem.tsx の思考プロセスパネル(amber系)と同じ構造(ヘッダーボタン+chevron+区切り本文)を
 // 踏襲しつつ、意味的な区別のため配色をemerald系にしている。
 
-export type SourceRef = {
-  id: string
-  file: string
-  title: string
-  snippet: string
-  score: number
-}
+import type { SourceRef } from '@/lib/rag/prompt'
 
 type Props = {
   sources: SourceRef[]
