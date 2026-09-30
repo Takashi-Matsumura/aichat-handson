@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { AdminStatsPanel } from '@/app/components/dashboard/AdminStatsPanel'
 import { PromptBroadcastPanel } from '@/app/components/presenter/PromptBroadcastPanel'
@@ -23,11 +23,17 @@ type SourceFile = {
 
 type Tab = 'access' | 'rag' | 'prompts' | 'stats'
 
+// window.location.origin はページ表示中に変わらないため、変更を購読する必要がない。
+function subscribeNothing() {
+  return () => {}
+}
+
 export default function PresenterPage() {
   type ModelInfo = { model: string | null; ctxSize: number | null; parallel: number | null; label: string | null }
 
   const [tab, setTab] = useState<Tab>('access')
-  const [url, setUrl] = useState('')
+  // 受講者に案内するURL(このページを開いているオリジン)。サーバー側の描画時は空。
+  const url = useSyncExternalStore(subscribeNothing, () => window.location.origin, () => '')
   const [copied, setCopied] = useState(false)
   const [modelInfos, setModelInfos] = useState<Record<1 | 2, ModelInfo | null>>({ 1: null, 2: null })
   const [model1Enabled, setModel1EnabledState] = useState<boolean | null>(null)
@@ -73,9 +79,7 @@ export default function PresenterPage() {
   }
 
   useEffect(() => {
-    setUrl(window.location.origin)
-
-    async function fetchAll() {
+    async function fetchModelInfos() {
       const results = await Promise.allSettled([
         fetch('/api/model-info?n=1').then((r) => r.json()),
         fetch('/api/model-info?n=2').then((r) => r.json()),
@@ -85,15 +89,16 @@ export default function PresenterPage() {
         2: results[1].status === 'fulfilled' ? results[1].value : null,
       })
     }
+    // 初期表示に必要なデータを並行して取得する。
+    async function fetchAll() {
+      await Promise.all([fetchModelInfos(), fetchRagStatus(), fetchSources()])
+    }
     fetchAll()
 
     fetch('/api/admin/model-lock')
       .then((r) => r.json())
       .then((data) => setModel1EnabledState(data.model1Enabled !== false))
       .catch(() => setModel1EnabledState(true))
-
-    fetchRagStatus()
-    fetchSources()
   }, [])
 
   // 再構築に失敗しても既存インデックスは維持される(indexer.ts参照)。
