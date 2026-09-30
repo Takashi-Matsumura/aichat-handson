@@ -14,6 +14,8 @@ services:
       LLAMA_MODEL_LABEL_2:        ${LLAMA_MODEL_LABEL_2:-}
       LLAMA_MAX_TOKENS:           ${LLAMA_MAX_TOKENS:-2048}
       LLAMA_CLASSIFY_MAX_TOKENS:  ${LLAMA_CLASSIFY_MAX_TOKENS:-512}
+      # 講師用管理画面(/presenter)のパスワード。未設定なら管理機能は無効
+      PRESENTER_PASSWORD:         ${PRESENTER_PASSWORD:-}
       # RAG（社内資料を使った回答）。埋め込み用のllama-serverは別途起動しておくこと。
       RAG_EMBED_API_URL:          ${RAG_EMBED_API_URL:-http://host.docker.internal:8082}
       RAG_EMBED_MODEL:            ${RAG_EMBED_MODEL:-embedding}
