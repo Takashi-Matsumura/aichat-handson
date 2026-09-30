@@ -4,6 +4,7 @@
 
 import { isModel1Enabled, setModel1Enabled } from '@/lib/settings/store'
 import { requirePresenter } from '@/lib/presenter/auth'
+import { invalidJsonResponse, readJsonObject } from '@/lib/http/json'
 
 export async function GET() {
   return Response.json({ model1Enabled: isModel1Enabled() })
@@ -12,7 +13,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const denied = await requirePresenter(request)
   if (denied) return denied
-  const { enabled } = await request.json()
+  const body = await readJsonObject(request)
+  if (!body) return invalidJsonResponse()
+  const { enabled } = body
   setModel1Enabled(enabled === true)
   return Response.json({ model1Enabled: isModel1Enabled() })
 }

@@ -4,6 +4,7 @@
 import { clearBroadcast, getBroadcast, getSubscriberCount, setBroadcast } from '@/lib/presenter/broadcast'
 import { getPrompt } from '@/lib/presenter/prompts'
 import { requirePresenter } from '@/lib/presenter/auth'
+import { invalidJsonResponse, readJsonObject } from '@/lib/http/json'
 
 export async function GET(request: Request) {
   const denied = await requirePresenter(request)
@@ -14,7 +15,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const denied = await requirePresenter(request)
   if (denied) return denied
-  const { promptId } = await request.json()
+  const body = await readJsonObject(request)
+  if (!body) return invalidJsonResponse()
+  const { promptId } = body
   if (typeof promptId !== 'string') {
     return Response.json({ error: 'promptIdが必要です' }, { status: 400 })
   }
