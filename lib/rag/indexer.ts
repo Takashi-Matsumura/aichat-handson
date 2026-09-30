@@ -47,7 +47,6 @@ export async function getIndexStatus(): Promise<{
   dims: number | null
   error: string | null
   online: boolean
-  sampleTitles: string[]
 }> {
   const index = await ensureIndex()
   const online = await isEmbedServerOnline()
@@ -58,7 +57,6 @@ export async function getIndexStatus(): Promise<{
     dims: index.dims,
     error: index.error,
     online,
-    sampleTitles: index.chunks.slice(0, 5).map(c => c.title),
   }
 }
 

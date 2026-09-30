@@ -53,7 +53,8 @@ export default function PresenterPage() {
   // ではなくコンポーネントスコープの関数として定義する。
   async function fetchRagStatus() {
     try {
-      const res = await fetch('/api/rag/status')
+      const res = await fetch('/api/admin/rag-status')
+      if (!res.ok) { setRagStatus(null); return }
       const data = await res.json()
       setRagStatus(data)
     } catch {
