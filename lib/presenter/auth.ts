@@ -3,7 +3,7 @@
 // 受講者はログイン無しのままにしつつ、管理系API(/api/admin/*)と講師画面だけは
 // 環境変数 PRESENTER_PASSWORD を知っている人に限定する。セッションストアを持たず、
 // Cookieには「パスワードから導出したHMAC」を入れる(パスワードを変えれば全セッションが失効する)。
-// PRESENTER_PASSWORD が未設定の場合は安全側に倒し、管理系APIはすべて拒否する。
+// PRESENTER_PASSWORD が未設定または短すぎる場合は安全側に倒し、管理系APIはすべて拒否する。
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
@@ -11,9 +11,39 @@ import { cookies } from 'next/headers'
 export const PRESENTER_COOKIE = 'presenter_auth'
 export const PRESENTER_COOKIE_MAX_AGE = 60 * 60 * 12
 
+// ログイン試行はサーバー全体で毎秒1回程度に制限している(下の takeLoginAttempt)が、
+// 短いパスワードではそれでも総当たりが現実的になるため、この長さ未満は設定として受け付けない。
+export const MIN_PASSWORD_LENGTH = 12
+
 function getPassword(): string | null {
   const password = process.env.PRESENTER_PASSWORD
-  return password ? password : null
+  return password && password.length >= MIN_PASSWORD_LENGTH ? password : null
+}
+
+// ログイン試行の回数制限(トークンバケット)。
+// 接続元IPごとに数えたいが、Next.js は X-Forwarded-For が既に付いていればそれを信用するため
+// (next/dist/server/base-server.js)、IPはクライアントが自由に偽装できる。そこでサーバー全体で
+// 「平均毎秒1回・連続5回まで」に制限する。講師本人は通常ログイン済み(Cookie有効12時間)なので、
+// 攻撃中にログインしづらくなる副作用は許容する。
+const LOGIN_BURST = 5
+const LOGIN_REFILL_INTERVAL_MS = 1000
+
+const globalForThrottle = globalThis as unknown as {
+  __presenterLoginThrottle?: { tokens: number; updatedAt: number }
+}
+const throttle =
+  globalForThrottle.__presenterLoginThrottle ??
+  (globalForThrottle.__presenterLoginThrottle = { tokens: LOGIN_BURST, updatedAt: Date.now() })
+
+// 試行してよければ true を返し、1回分を消費する。
+export function takeLoginAttempt(): boolean {
+  const now = Date.now()
+  const refilled = (now - throttle.updatedAt) / LOGIN_REFILL_INTERVAL_MS
+  throttle.tokens = Math.min(LOGIN_BURST, throttle.tokens + refilled)
+  throttle.updatedAt = now
+  if (throttle.tokens < 1) return false
+  throttle.tokens -= 1
+  return true
 }
 
 export function isPresenterAuthConfigured(): boolean {
@@ -70,7 +100,7 @@ export function isSameOriginRequest(request: Request): boolean {
 export async function requirePresenter(request: Request): Promise<Response | null> {
   if (!isPresenterAuthConfigured()) {
     return Response.json(
-      { error: '講師用パスワード(PRESENTER_PASSWORD)が設定されていないため、管理機能は無効です' },
+      { error: `講師用パスワード(PRESENTER_PASSWORD)が未設定か${MIN_PASSWORD_LENGTH}文字未満のため、管理機能は無効です` },
       { status: 503 }
     )
   }
