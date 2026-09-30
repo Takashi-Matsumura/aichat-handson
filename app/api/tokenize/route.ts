@@ -5,9 +5,9 @@ const LLAMA_URLS: Record<number, string> = {
   2: process.env.LLAMA_API_URL_2 ?? 'http://localhost:8081',
 }
 
-// チャット画面は会話全体(app/api/chat/route.ts の上限 100,000文字 + 区切り)を送ってくるため、
+// チャット画面は会話全体(app/api/chat/route.ts の上限 30,000文字 + 最大200件分の区切り)を送ってくるため、
 // それを少し上回る値を上限にする。巨大な入力で推論サーバーを占有されるのを防ぐ。
-const MAX_CONTENT_CHARS = 120_000
+const MAX_CONTENT_CHARS = 31_000
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)

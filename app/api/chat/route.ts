@@ -25,10 +25,12 @@ const ANALYTICS_MODEL_NAMES: Record<number, string> = {
 // 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
 const MAX_TOKENS = Number(process.env.LLAMA_MAX_TOKENS ?? 2048)
 
-// 1リクエストで受け付ける会話履歴の上限。受講者の通常利用では到達しない値にしてあり、
-// 巨大なペイロードで推論サーバーを占有される(会場全体が詰まる)のを防ぐためのもの。
+// 1リクエストで受け付ける会話履歴の上限。巨大な入力で推論サーバーのスロットを長時間
+// 占有される(会場全体が詰まる)のを防ぐためのもの。文字数はペイロードだけでなく推論時間にも
+// 効くため小さめにしてある(モデル2では10万文字近い入力1件で約2分占有された)。
+// 長い会話で上限に達した受講者には、新しい会話を始めるよう案内する。
 const MAX_MESSAGES = 200
-const MAX_TOTAL_CHARS = 100_000
+const MAX_TOTAL_CHARS = 30_000
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
