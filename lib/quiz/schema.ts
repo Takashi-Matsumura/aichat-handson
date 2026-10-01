@@ -20,7 +20,14 @@ export type QuizItem = QuizQuestion & {
   pageTitle: string
 }
 
-export type Quiz = { questions: QuizItem[] }
+// /api/quiz のレスポンス(NDJSON: 1行に1イベント)。
+// start で予定の出題数を伝え、問題ができるたびに question を送り、最後に done(作れた問数)を送る。
+// 1問も作れなかった場合や、順番待ちがあふれた場合は error を送って終わる。
+export type QuizStreamEvent =
+  | { type: 'start'; total: number }
+  | { type: 'question'; item: QuizItem }
+  | { type: 'done'; count: number }
+  | { type: 'error'; message: string }
 
 export const QUIZ_TOTAL_QUESTIONS = 10
 export const CHOICE_COUNT = 4
@@ -201,33 +208,6 @@ export function validateQuizItem(value: unknown, chapters: string[]): QuizQuesti
   if (!chapter) return 'chapter がテキストの章見出しと一致しません'
 
   return { question, choices, answerIndex: 0, explanation, chapter }
-}
-
-export type BatchValidation = { valid: QuizQuestion[]; errors: string[] }
-
-// LLMの出力(複数問)を1問ずつ検証する。正しい問題だけを残し、不正だった問題の理由を errors に集める。
-// 呼び出し側は足りない問数だけを作り直させればよく、1問の不備で全問を捨てずに済む。
-// 出力全体が使えない(問題の配列が見つからない)場合はエラー内容(文字列)を返す。
-// エラー文字列は再試行時にそのままLLMへ渡すので、何を直せばよいかが分かる書き方にする。
-export function validateQuizBatch(value: unknown, chapters: string[], existingQuestions: string[] = []): BatchValidation | string {
-  const items = Array.isArray(value) ? value : (value as { questions?: unknown } | null)?.questions
-  if (!Array.isArray(items)) return 'questions 配列を持つJSONオブジェクトではありません'
-
-  const seen = new Set(existingQuestions)
-  const valid: QuizQuestion[] = []
-  const errors: string[] = []
-  items.forEach((item, i) => {
-    const result = validateQuizItem(item, chapters)
-    if (typeof result === 'string') {
-      errors.push(`問${i + 1}: ${result}`)
-    } else if (seen.has(result.question)) {
-      errors.push(`問${i + 1}: 他の問題と重複しています`)
-    } else {
-      seen.add(result.question)
-      valid.push(result)
-    }
-  })
-  return { valid, errors }
 }
 
 // Fisher–Yates シャッフル(非破壊)。

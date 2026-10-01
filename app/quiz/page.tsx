@@ -1,19 +1,83 @@
 'use client'
 
 import Link from 'next/link'
-import { startTransition, useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useReducer, useRef, useState } from 'react'
 import { HANDSON_PAGES } from '@/lib/handson/pages'
 import { loadQuizHistory, recordQuizResult, type QuizHistoryEntry, type QuizPageScore } from '@/lib/quiz-history'
-import type { Quiz, QuizItem } from '@/lib/quiz/schema'
-
-type Phase =
-  | { kind: 'intro' }
-  | { kind: 'loading' }
-  | { kind: 'error'; message: string }
-  | { kind: 'answering'; quiz: Quiz; index: number; answers: (number | null)[] }
-  | { kind: 'result'; quiz: Quiz; answers: number[] }
+import type { QuizItem, QuizStreamEvent } from '@/lib/quiz/schema'
 
 const CHOICE_LABELS = ['A', 'B', 'C', 'D']
+
+// 問題はサーバーからストリーミングで1問ずつ届く。受講者は1問目が届いた時点で解き始め、
+// 解いている間に残りが届く。生成が追いつかなければ「次の問題を作成中」で待つ。
+type State = {
+  view: 'intro' | 'running' | 'error' | 'result'
+  runId: number // 「もう一度」のたびに増やす(履歴を1回だけ記録するため)
+  message: string
+  items: QuizItem[]
+  planned: number // 予定の出題数(生成が一部失敗すると、実際の出題数 items.length はこれより少なくなる)
+  done: boolean // サーバーからの問題がすべて届いた
+  index: number
+  answers: (number | null)[]
+  waitingSince: number // 問題の到着待ちを始めた時刻(経過秒数の表示用)
+}
+
+type Action =
+  | { type: 'start'; at: number }
+  | { type: 'event'; event: QuizStreamEvent }
+  | { type: 'fail'; message: string }
+  | { type: 'answer'; choice: number }
+  | { type: 'next'; at: number }
+
+const initialState: State = {
+  view: 'intro',
+  runId: 0,
+  message: '',
+  items: [],
+  planned: 0,
+  done: false,
+  index: 0,
+  answers: [],
+  waitingSince: 0,
+}
+
+// 生成が終わったときに、受講者が最後の問題の先で待っていれば結果画面へ進める。
+function finishIfWaiting(state: State): State {
+  return state.view === 'running' && state.done && state.index >= state.items.length ? { ...state, view: 'result' } : state
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'start':
+      return { ...initialState, view: 'running', runId: state.runId + 1, waitingSince: action.at }
+    case 'event': {
+      if (state.view !== 'running') return state
+      const e = action.event
+      if (e.type === 'start') return { ...state, planned: e.total }
+      if (e.type === 'question') return { ...state, items: [...state.items, e.item], answers: [...state.answers, null] }
+      if (e.type === 'done') return finishIfWaiting({ ...state, done: true })
+      // error: 1問も届いていなければエラー画面、届いていればそこまでの問題で続ける
+      return state.items.length === 0
+        ? { ...state, view: 'error', message: e.message }
+        : finishIfWaiting({ ...state, done: true })
+    }
+    case 'fail':
+      if (state.view !== 'running') return state
+      return state.items.length === 0
+        ? { ...state, view: 'error', message: action.message }
+        : finishIfWaiting({ ...state, done: true })
+    case 'answer': {
+      if (state.view !== 'running' || state.answers[state.index] != null) return state
+      const answers = [...state.answers]
+      answers[state.index] = action.choice
+      return { ...state, answers }
+    }
+    case 'next': {
+      if (state.view !== 'running') return state
+      return finishIfWaiting({ ...state, index: state.index + 1, waitingSince: action.at })
+    }
+  }
+}
 
 function scoreByPage(questions: QuizItem[], answers: number[]): QuizPageScore[] {
   return HANDSON_PAGES.map((page) => {
@@ -31,70 +95,82 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+// /api/quiz の NDJSON を1行ずつ読み、イベントごとに onEvent を呼ぶ。
+async function readQuizStream(res: Response, onEvent: (event: QuizStreamEvent) => void): Promise<void> {
+  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader()
+  let pending = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    pending += value
+    const lines = pending.split('\n')
+    pending = lines.pop() ?? ''
+    for (const line of lines) {
+      if (line.trim()) onEvent(JSON.parse(line) as QuizStreamEvent)
+    }
+  }
+}
+
 export default function QuizPage() {
-  const [phase, setPhase] = useState<Phase>({ kind: 'intro' })
+  const [state, dispatch] = useReducer(reducer, initialState)
   const [history, setHistory] = useState<QuizHistoryEntry[]>([])
-  const [elapsed, setElapsed] = useState(0)
-  const abortRef = useRef<AbortController | null>(null)
+  const [now, setNow] = useState(0)
+  const [controller, setController] = useState<AbortController | null>(null)
+  const current = state.items[state.index]
+  const waiting = state.view === 'running' && !current
 
   useEffect(() => {
     startTransition(() => setHistory(loadQuizHistory()))
-    return () => abortRef.current?.abort()
   }, [])
 
-  // 生成待ちの経過秒数(待ち時間の目安として表示する)
+  // 画面を離れたら生成を打ち切る(サーバー側も順番待ち・生成を中断してスロットを空ける)
+  useEffect(() => () => controller?.abort(), [controller])
+
+  // 問題の到着待ちの経過秒数(待ち時間の目安として表示する)
   useEffect(() => {
-    if (phase.kind !== 'loading') return
-    const startedAt = Date.now()
-    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000)
+    if (!waiting) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
-  }, [phase.kind])
+  }, [waiting])
+  const elapsed = Math.max(0, Math.floor((now - state.waitingSince) / 1000))
+
+  // 結果画面に進んだら、成績を1回だけ履歴に記録する
+  const recordedRunId = useRef(0)
+  useEffect(() => {
+    if (state.view !== 'result' || recordedRunId.current === state.runId) return
+    recordedRunId.current = state.runId
+    const answers = state.items.map((_, i) => state.answers[i] ?? -1)
+    recordQuizResult({
+      at: new Date().toISOString(),
+      correct: state.items.filter((q, i) => q.answerIndex === answers[i]).length,
+      total: state.items.length,
+      pages: scoreByPage(state.items, answers),
+    })
+  }, [state])
 
   async function startQuiz() {
-    abortRef.current?.abort()
     const ac = new AbortController()
-    abortRef.current = ac
-    setElapsed(0)
-    setPhase({ kind: 'loading' })
+    setController(ac)
+    const at = Date.now()
+    setNow(at)
+    dispatch({ type: 'start', at })
     try {
       const res = await fetch('/api/quiz', { method: 'POST', signal: ac.signal })
-      const data = (await res.json().catch(() => null)) as (Quiz & { error?: string }) | null
-      if (!res.ok || !data?.questions) {
-        setPhase({ kind: 'error', message: data?.error ?? '問題の生成に失敗しました。もう一度お試しください。' })
+      if (!res.ok || !res.body) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null
+        dispatch({ type: 'fail', message: data?.error ?? '問題の生成に失敗しました。もう一度お試しください。' })
         return
       }
-      setPhase({ kind: 'answering', quiz: data, index: 0, answers: data.questions.map(() => null) })
+      await readQuizStream(res, (event) => dispatch({ type: 'event', event }))
+      // done/error を受け取らずに切れた場合(サーバー停止など)も、届いた分で終える
+      dispatch({ type: 'fail', message: '問題の生成が途中で止まりました。もう一度お試しください。' })
     } catch {
       if (ac.signal.aborted) return
-      setPhase({ kind: 'error', message: 'サーバーに接続できませんでした。もう一度お試しください。' })
+      dispatch({ type: 'fail', message: 'サーバーに接続できませんでした。もう一度お試しください。' })
     }
   }
 
-  function answer(choice: number) {
-    if (phase.kind !== 'answering' || phase.answers[phase.index] != null) return
-    const answers = [...phase.answers]
-    answers[phase.index] = choice
-    setPhase({ ...phase, answers })
-  }
-
-  function next() {
-    if (phase.kind !== 'answering') return
-    if (phase.index + 1 < phase.quiz.questions.length) {
-      setPhase({ ...phase, index: phase.index + 1 })
-      return
-    }
-    const answers = phase.answers.map((a) => a ?? -1)
-    const questions = phase.quiz.questions
-    const entry: QuizHistoryEntry = {
-      at: new Date().toISOString(),
-      correct: questions.filter((q, i) => q.answerIndex === answers[i]).length,
-      total: questions.length,
-      pages: scoreByPage(questions, answers),
-    }
-    recordQuizResult(entry)
-    setHistory(loadQuizHistory())
-    setPhase({ kind: 'result', quiz: phase.quiz, answers })
-  }
+  const total = state.done ? state.items.length : state.planned || state.items.length
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-10">
@@ -119,37 +195,55 @@ export default function QuizPage() {
           </div>
         </div>
 
-        {phase.kind === 'intro' && <Intro history={history} onStart={startQuiz} />}
+        {state.view === 'intro' && <Intro history={history} onStart={startQuiz} />}
 
-        {phase.kind === 'loading' && (
+        {waiting && (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-black/10 p-10 text-center dark:border-white/15">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-ocean-200 border-t-ocean-700" />
-            <p className="text-sm font-medium">AIが問題を作っています…</p>
-            <p className="text-xs text-foreground/50">
-              30秒〜1分ほどかかります（経過 {elapsed}秒）。混み合っているときは順番待ちになります。
-            </p>
+            {state.index === 0 ? (
+              <>
+                <p className="text-sm font-medium">AIが問題を作っています…</p>
+                <p className="text-xs text-foreground/50">
+                  最初の問題ができしだい始まります（経過 {elapsed}秒）。残りの問題は、解いている間にAIが作り続けます。混み合っているときは順番待ちになります。
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium">
+                  第{state.index + 1}問をAIが作っています…
+                </p>
+                <p className="text-xs text-foreground/50">もうしばらくお待ちください（経過 {elapsed}秒）。</p>
+              </>
+            )}
           </div>
         )}
 
-        {phase.kind === 'error' && (
+        {state.view === 'error' && (
           <div className="flex flex-col items-start gap-4 rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-900/60 dark:bg-red-950/30">
-            <p className="text-sm text-red-700 dark:text-red-300">{phase.message}</p>
+            <p className="text-sm text-red-700 dark:text-red-300">{state.message}</p>
             <PrimaryButton onClick={startQuiz}>もう一度試す</PrimaryButton>
           </div>
         )}
 
-        {phase.kind === 'answering' && (
+        {state.view === 'running' && current && (
           <QuestionCard
-            item={phase.quiz.questions[phase.index]}
-            index={phase.index}
-            total={phase.quiz.questions.length}
-            selected={phase.answers[phase.index]}
-            onAnswer={answer}
-            onNext={next}
+            item={current}
+            index={state.index}
+            total={total}
+            selected={state.answers[state.index]}
+            onAnswer={(choice) => dispatch({ type: 'answer', choice })}
+            onNext={() => dispatch({ type: 'next', at: Date.now() })}
           />
         )}
 
-        {phase.kind === 'result' && <Result quiz={phase.quiz} answers={phase.answers} onRetry={startQuiz} />}
+        {state.view === 'result' && (
+          <Result
+            questions={state.items}
+            answers={state.items.map((_, i) => state.answers[i] ?? -1)}
+            planned={state.planned}
+            onRetry={startQuiz}
+          />
+        )}
       </div>
     </div>
   )
@@ -285,10 +379,20 @@ function QuestionCard({
   )
 }
 
-function Result({ quiz, answers, onRetry }: { quiz: Quiz; answers: number[]; onRetry: () => void }) {
-  const total = quiz.questions.length
-  const correct = quiz.questions.filter((q, i) => q.answerIndex === answers[i]).length
-  const pages = scoreByPage(quiz.questions, answers)
+function Result({
+  questions,
+  answers,
+  planned,
+  onRetry,
+}: {
+  questions: QuizItem[]
+  answers: number[]
+  planned: number
+  onRetry: () => void
+}) {
+  const total = questions.length
+  const correct = questions.filter((q, i) => q.answerIndex === answers[i]).length
+  const pages = scoreByPage(questions, answers)
   const message =
     correct === total
       ? '全問正解です！ハンズオンの内容がしっかり身についています。'
@@ -305,6 +409,11 @@ function Result({ quiz, answers, onRetry }: { quiz: Quiz; answers: number[]; onR
           <span className="text-xl font-semibold text-foreground/50"> / {total}問</span>
         </p>
         <p className="text-sm text-foreground/70">{message}</p>
+        {total < planned && (
+          <p className="text-xs text-foreground/50">
+            AIによる問題の生成が一部うまくいかなかったため、{planned}問のうち作れた{total}問で採点しています。
+          </p>
+        )}
         <div className="mt-2 grid w-full gap-3 sm:grid-cols-3">
           {pages.map((p) => (
             <div key={p.pageId} className="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
@@ -329,7 +438,7 @@ function Result({ quiz, answers, onRetry }: { quiz: Quiz; answers: number[]; onR
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">ふりかえり</h2>
         <ol className="flex flex-col gap-3">
-          {quiz.questions.map((q, i) => {
+          {questions.map((q, i) => {
             const ok = q.answerIndex === answers[i]
             return (
               <li key={i} className="rounded-xl border border-black/10 p-4 text-sm dark:border-white/15">
