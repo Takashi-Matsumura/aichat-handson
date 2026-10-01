@@ -14,6 +14,12 @@ services:
       LLAMA_MODEL_LABEL_2:        ${LLAMA_MODEL_LABEL_2:-}
       LLAMA_MAX_TOKENS:           ${LLAMA_MAX_TOKENS:-2048}
       LLAMA_CLASSIFY_MAX_TOKENS:  ${LLAMA_CLASSIFY_MAX_TOKENS:-512}
+      # 確認テスト(/quiz)。生成に使うモデル・生成トークン上限・同時生成数と順番待ちの上限。
+      QUIZ_MODEL_INDEX:           ${QUIZ_MODEL_INDEX:-2}
+      LLAMA_QUIZ_MAX_TOKENS:      ${LLAMA_QUIZ_MAX_TOKENS:-2500}
+      QUIZ_MAX_CONCURRENT:        ${QUIZ_MAX_CONCURRENT:-1}
+      QUIZ_MAX_QUEUE:             ${QUIZ_MAX_QUEUE:-60}
+      QUIZ_TIMEOUT_MS:            ${QUIZ_TIMEOUT_MS:-180000}
       # 講師用管理画面(/presenter)のパスワード。未設定なら管理機能は無効
       PRESENTER_PASSWORD:         ${PRESENTER_PASSWORD:-}
       # RAG（社内資料を使った回答）。埋め込み用のllama-serverは別途起動しておくこと。

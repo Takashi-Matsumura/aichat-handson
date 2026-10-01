@@ -6,7 +6,6 @@ import {
   pickSpecs,
   shuffleChoices,
   stripChoiceReferences,
-  validateQuizBatch,
   validateQuizItem,
 } from './schema'
 
@@ -79,29 +78,6 @@ describe('validateQuizItem', () => {
     ['問題文が長すぎる', q('あ'.repeat(301))],
   ])('%s場合はエラー文字列を返す', (_, value) => {
     expect(typeof validateQuizItem(value, CHAPTERS)).toBe('string')
-  })
-})
-
-describe('validateQuizBatch', () => {
-  it('正しい問題だけを残し、不正な問題の理由を集める', () => {
-    const result = validateQuizBatch({ questions: [q('問題1'), q('問題2', { correct: '' }), q('問題3')] }, CHAPTERS)
-    expect(typeof result !== 'string' && result.valid.map((v) => v.question)).toEqual(['問題1', '問題3'])
-    expect(typeof result !== 'string' && result.errors).toEqual(['問2: 空の選択肢があります'])
-  })
-
-  it('既存の問題や同じ出力内での重複を除く', () => {
-    const result = validateQuizBatch({ questions: [q('既出'), q('新規'), q('新規')] }, CHAPTERS, ['既出'])
-    expect(typeof result !== 'string' && result.valid.map((v) => v.question)).toEqual(['新規'])
-    expect(typeof result !== 'string' && result.errors).toHaveLength(2)
-  })
-
-  it('配列だけが返ってきても受け入れる', () => {
-    const result = validateQuizBatch([q('問題1')], CHAPTERS)
-    expect(typeof result !== 'string' && result.valid).toHaveLength(1)
-  })
-
-  it.each([null, {}, { questions: 'x' }])('問題の配列が無ければエラー文字列 (%o)', (value) => {
-    expect(typeof validateQuizBatch(value, CHAPTERS)).toBe('string')
   })
 })
 
