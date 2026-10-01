@@ -82,6 +82,19 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
       </div>
 
       <div className="flex items-center gap-2 justify-self-end">
+        {/* 確認テスト（ハンズオン後の理解度チェック）へのリンク */}
+        <Link
+          href="/quiz"
+          title="確認テスト"
+          aria-label="確認テスト"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="8" y="2" width="8" height="4" rx="1" />
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <path d="m9 14 2 2 4-4" />
+          </svg>
+        </Link>
         {/* AI利用状況ダッシュボードへのリンク */}
         <Link
           href="/analytics"

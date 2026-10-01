@@ -9,6 +9,7 @@ import {
   validateClassification,
 } from "./classification-schema";
 import type { ClassificationResult } from "./store";
+import { parseJsonLoose } from "@/lib/llm/json";
 
 const MAX_ATTEMPTS = 3;
 // 分類はJSON1個を返すだけの軽いタスクなので、reasoning_content が暴走しても
@@ -97,19 +98,4 @@ async function requestClassificationJson(
   const content = data.choices?.[0]?.message?.content
   if (!content) throw new Error('分類応答が空でした')
   return content
-}
-
-// コードフェンス付き応答("```json ... ```")にも対応する緩いJSONパース。
-function parseJsonLoose(text: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/)
-    if (!match) return null
-    try {
-      return JSON.parse(match[0])
-    } catch {
-      return null
-    }
-  }
 }
