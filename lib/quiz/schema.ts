@@ -49,9 +49,10 @@ export type QuestionSpec = { chapter: string; style: QuestionStyle }
 // json_schema が効くサーバーでは生成時点で長さを縛る。
 // 望ましい長さはこれより短く、プロンプトの「長さの目安」で伝える(目安を少し超えた程度の
 // 問題まで捨てると、出力制約が効かないサーバーでは作り直しが多発するため)。
-const MAX_QUESTION_CHARS = 300
-const MAX_CHOICE_CHARS = 150
-const MAX_EXPLANATION_CHARS = 400
+// 追加説明のAPI(lib/quiz/explain.ts)でも、ブラウザから送り直された問題の検証に使う。
+export const MAX_QUESTION_CHARS = 300
+export const MAX_CHOICE_CHARS = 150
+export const MAX_EXPLANATION_CHARS = 400
 
 // LLMには正解の位置(番号)を答えさせず、「正解の文」と「誤りの選択肢3つ」を分けて出させる。
 // 小さいモデルは正解番号と解説が食い違いがちなので、並び順はサーバー側で組み立てる。

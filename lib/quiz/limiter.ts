@@ -61,11 +61,17 @@ export function createLimiter(limit: number, maxQueue: number): Limiter {
   }
 }
 
-const globalForQuiz = globalThis as unknown as { __quizLimiter?: Limiter }
+const globalForQuiz = globalThis as unknown as { __quizLimiter?: Limiter; __quizExplainLimiter?: Limiter }
+
+const MAX_QUEUE = Math.max(0, Number(process.env.QUIZ_MAX_QUEUE ?? 60))
 
 export const quizLimiter: Limiter =
   globalForQuiz.__quizLimiter ??
-  (globalForQuiz.__quizLimiter = createLimiter(
-    Math.max(1, Number(process.env.QUIZ_MAX_CONCURRENT ?? 1)),
-    Math.max(0, Number(process.env.QUIZ_MAX_QUEUE ?? 60)),
-  ))
+  (globalForQuiz.__quizLimiter = createLimiter(Math.max(1, Number(process.env.QUIZ_MAX_CONCURRENT ?? 1)), MAX_QUEUE))
+
+// 追加説明(/api/quiz/explain)用。問題生成の枠は1回分の生成が終わるまで空かないので、
+// 同じ枠を使うと、受講者自身の「残りの問題の生成」が終わるまで追加説明が待たされてしまう。
+// 追加説明は1回が短いので、別枠にして同時実行数だけを絞る。
+export const explainLimiter: Limiter =
+  globalForQuiz.__quizExplainLimiter ??
+  (globalForQuiz.__quizExplainLimiter = createLimiter(Math.max(1, Number(process.env.QUIZ_EXPLAIN_MAX_CONCURRENT ?? 2)), MAX_QUEUE))

@@ -20,6 +20,7 @@ services:
       QUIZ_MAX_CONCURRENT:        ${QUIZ_MAX_CONCURRENT:-1}
       QUIZ_MAX_QUEUE:             ${QUIZ_MAX_QUEUE:-60}
       QUIZ_TIMEOUT_MS:            ${QUIZ_TIMEOUT_MS:-180000}
+      QUIZ_EXPLAIN_MAX_CONCURRENT: ${QUIZ_EXPLAIN_MAX_CONCURRENT:-2}
       # 講師用管理画面(/presenter)のパスワード。未設定なら管理機能は無効
       PRESENTER_PASSWORD:         ${PRESENTER_PASSWORD:-}
       # RAG（社内資料を使った回答）。埋め込み用のllama-serverは別途起動しておくこと。
