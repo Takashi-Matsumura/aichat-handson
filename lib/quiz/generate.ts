@@ -13,6 +13,7 @@ import path from 'node:path'
 import { HANDSON_PAGES } from '@/lib/handson/pages'
 import { LLAMA_MODEL, LLAMA_URLS } from '@/lib/llama/config'
 import { createArrayItemExtractor } from '@/lib/llm/json'
+import { readChatContentStream } from '@/lib/llm/stream'
 import {
   QUIZ_TOTAL_QUESTIONS,
   allocateCounts,
@@ -35,7 +36,9 @@ const MAX_TOKENS = Number(process.env.LLAMA_QUIZ_MAX_TOKENS ?? 2500)
 const TEMPERATURE = 0.9
 // 大人数で一斉に使うことを想定し、既定ではハンズオンパネル表示中と同じモデル2(軽いモデル)で生成する。
 // 少人数で問題の質を優先したい場合は QUIZ_MODEL_INDEX=1 でモデル1に切り替えられる。
-const LLAMA_URL = LLAMA_URLS[process.env.QUIZ_MODEL_INDEX === '1' ? 1 : 2]
+// 追加説明(lib/quiz/explain-generate.ts)も同じモデルを使う。
+export const QUIZ_LLAMA_URL = LLAMA_URLS[process.env.QUIZ_MODEL_INDEX === '1' ? 1 : 2]
+const LLAMA_URL = QUIZ_LLAMA_URL
 
 export type QuizGenerationResult = { count: number; errors: string[] }
 
@@ -65,7 +68,7 @@ export async function generateQuiz(onQuestion: (item: QuizItem) => void, signal?
 }
 
 // page.file は "/handson/handson1.md" のような public 配下のパス(定数)。
-async function readHandsonMarkdown(file: string): Promise<string> {
+export async function readHandsonMarkdown(file: string): Promise<string> {
   return readFile(path.join(process.cwd(), 'public', file), 'utf8')
 }
 
@@ -174,31 +177,9 @@ async function streamQuizJson(
   res ??= await post(common)
   if (!res.ok || !res.body) throw new Error(`問題生成リクエストが失敗しました (status ${res.status})`)
 
-  // llama.cpp の SSE("data: {...}" 行)から本文の差分を取り出し、要素の取り出し器に流し込む。
+  // 本文の差分を要素の取り出し器に流し込む。
   const extract = createArrayItemExtractor()
-  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
-  let pending = ''
-  let finishReason: string | null = null
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    pending += value
-    const lines = pending.split('\n')
-    pending = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
-      let event: { choices?: { delta?: { content?: string }; finish_reason?: string | null }[] }
-      try {
-        event = JSON.parse(line.slice(6))
-      } catch {
-        continue
-      }
-      const choice = event.choices?.[0]
-      if (choice?.finish_reason) finishReason = choice.finish_reason
-      const content = choice?.delta?.content
-      if (content) extract(content).forEach(onItem)
-    }
-  }
+  const finishReason = await readChatContentStream(res, (content) => extract(content).forEach(onItem))
   // 上限トークン数で途中切れした場合、最後の問題は不完全なので、再試行時にLLMへ理由を伝える。
   if (finishReason === 'length') throw new Error('出力が長すぎて途中で切れました。問題文・選択肢・解説をもっと短くしてください')
 }

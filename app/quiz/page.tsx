@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { startTransition, useEffect, useReducer, useRef, useState } from 'react'
 import { HANDSON_PAGES } from '@/lib/handson/pages'
 import { loadQuizHistory, recordQuizResult, type QuizHistoryEntry, type QuizPageScore } from '@/lib/quiz-history'
+import { readNdjsonStream } from '@/lib/quiz/ndjson'
 import type { QuizItem, QuizStreamEvent } from '@/lib/quiz/schema'
+import { ExtraHelp } from './ExtraHelp'
 
 const CHOICE_LABELS = ['A', 'B', 'C', 'D']
 
@@ -95,22 +97,6 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// /api/quiz の NDJSON を1行ずつ読み、イベントごとに onEvent を呼ぶ。
-async function readQuizStream(res: Response, onEvent: (event: QuizStreamEvent) => void): Promise<void> {
-  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader()
-  let pending = ''
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    pending += value
-    const lines = pending.split('\n')
-    pending = lines.pop() ?? ''
-    for (const line of lines) {
-      if (line.trim()) onEvent(JSON.parse(line) as QuizStreamEvent)
-    }
-  }
-}
-
 export default function QuizPage() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [history, setHistory] = useState<QuizHistoryEntry[]>([])
@@ -161,7 +147,7 @@ export default function QuizPage() {
         dispatch({ type: 'fail', message: data?.error ?? '問題の生成に失敗しました。もう一度お試しください。' })
         return
       }
-      await readQuizStream(res, (event) => dispatch({ type: 'event', event }))
+      await readNdjsonStream<QuizStreamEvent>(res, (event) => dispatch({ type: 'event', event }))
       // done/error を受け取らずに切れた場合(サーバー停止など)も、届いた分で終える
       dispatch({ type: 'fail', message: '問題の生成が途中で止まりました。もう一度お試しください。' })
     } catch {
@@ -227,6 +213,7 @@ export default function QuizPage() {
 
         {state.view === 'running' && current && (
           <QuestionCard
+            key={state.index}
             item={current}
             index={state.index}
             total={total}
@@ -370,6 +357,7 @@ function QuestionCard({
             </p>
             <p className="mt-2 leading-relaxed text-foreground/80 whitespace-pre-wrap">{item.explanation}</p>
           </div>
+          <ExtraHelp item={item} selected={selected} />
           <div className="flex justify-end">
             <PrimaryButton onClick={onNext}>{index + 1 < total ? '次の問題へ' : '結果を見る'}</PrimaryButton>
           </div>
