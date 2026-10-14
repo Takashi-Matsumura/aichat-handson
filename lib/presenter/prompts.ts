@@ -28,7 +28,9 @@ const BODY_MAX_LENGTH = 20000
 
 async function readPromptsFile(): Promise<PromptsFile> {
   try {
-    const raw = await readFile(PROMPTS_PATH, 'utf-8')
+    // パスは環境変数で実行時に決まるため、ビルド時のファイル追跡から除外する
+    // (除外しないとプロジェクト全体が本番出力に含まれる)。
+    const raw = await readFile(/* turbopackIgnore: true */ PROMPTS_PATH, 'utf-8')
     const parsed = JSON.parse(raw)
     if (!parsed || !Array.isArray(parsed.prompts)) return { version: 1, prompts: [] }
     return { version: 1, prompts: parsed.prompts }
