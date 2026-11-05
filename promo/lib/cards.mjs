@@ -16,10 +16,18 @@ export const accent = (text) =>
     .replaceAll("\n", "<br>")
     .replace(/〔(.+?)〕/g, `<span style="color:${BRAND.deep}">$1</span>`);
 
-/** 問いかけ。研修の現場の「あるある」を 1 文で。 */
+/** 〔〕を除いた、いちばん長い行の文字数。 */
+const longest = (text) => Math.max(...text.split("\n").map((l) => l.replace(/[〔〕]/g, "").length));
+
+/**
+ * 問いかけ。研修の現場の「あるある」を 1 文で。
+ * 改行は \n で書いた所だけにする（行の途中で折り返すと「かかるか」が「かか／るか」のように切れる）。
+ * いちばん長い行が 1680px に収まるよう、文字を小さくする。
+ */
 export function questionCard(text) {
+  const size = Math.min(96, Math.floor(1680 / longest(text)));
   return page(
-    `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 120px;font-size:96px;font-weight:800;line-height:1.45">
+    `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 120px;font-size:${size}px;font-weight:800;line-height:1.45;white-space:nowrap">
       <div>${accent(text)}</div>
     </div>`,
     BRAND.light,
