@@ -31,7 +31,7 @@ const SUGGESTION_ICON_PATHS: Record<string, React.ReactNode> = {
 
 export function ChatWelcome({ panelOpen }: { panelOpen: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-5 pb-6">
+    <div className="flex flex-col items-center gap-4 pb-3">
       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-ocean-500 to-ocean-800 flex items-center justify-center shadow-lg shadow-ocean-900/15">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />

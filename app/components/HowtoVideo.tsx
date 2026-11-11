@@ -12,9 +12,9 @@ export function HowtoVideoCard() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group mt-6 w-full max-w-60 mx-auto flex flex-col gap-2 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 pb-3 text-center shadow-sm hover:border-ocean-300 dark:hover:border-ocean-600 transition-colors"
+        className="group mt-4 w-fit mx-auto flex flex-col gap-2 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 pb-3 text-center shadow-sm hover:border-ocean-300 dark:hover:border-ocean-600 transition-colors"
       >
-        <span className="relative block w-full aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-700">
+        <span className="relative block w-40 mx-auto aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-700">
           {/* eslint-disable-next-line @next/next/no-img-element -- 静的な小さいサムネイル。最適化は不要 */}
           <img src={howtoThumb(HOWTO_CHAPTERS[0].id)} alt="" className="w-full h-full object-cover" />
           <span className="absolute inset-0 flex items-center justify-center bg-black/15 group-hover:bg-black/5 transition-colors">
