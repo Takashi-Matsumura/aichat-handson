@@ -86,9 +86,9 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
           <div className="flex-none lg:flex-1 bg-black flex items-center">
+            {/* key を付けて作り直すと全画面が解除されるため、同じ要素のまま src だけを差し替える */}
             <video
               ref={videoRef}
-              key={chapter.id}
               src={howtoVideo(chapter.id)}
               poster={howtoThumb(chapter.id)}
               controls
