@@ -50,3 +50,6 @@ next-env.d.ts
 
 # 紹介動画（promo/）の撮影素材と書き出した動画。会社のロゴもここに置く
 /promo/out/
+
+# セキュリティレビューの記録（攻撃経路を含むため public リポジトリにはコミットしない）
+/security-review-*.md
