@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { HOWTO_CHAPTERS, formatDuration, howtoThumb, howtoVideo } from '@/lib/howto/chapters'
 
-const TOTAL_SEC = HOWTO_CHAPTERS.reduce((sum, c) => sum + c.duration, 0)
-
 // トップページ（会話が始まる前）に出す、アプリの使い方動画の入口。押すとチャプタ付きのプレーヤーが開く。
 // 研修の外でも、操作を独学で確認できるようにするためのもの。
 export function HowtoVideoCard() {
@@ -14,23 +12,23 @@ export function HowtoVideoCard() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group mt-6 w-full max-w-md mx-auto flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 pr-4 text-left shadow-sm hover:border-ocean-300 dark:hover:border-ocean-600 transition-colors"
+        className="group mt-6 w-full max-w-60 mx-auto flex flex-col gap-2 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 pb-3 text-center shadow-sm hover:border-ocean-300 dark:hover:border-ocean-600 transition-colors"
       >
-        <span className="relative flex-none w-32 aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-700">
+        <span className="relative block w-full aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-700">
           {/* eslint-disable-next-line @next/next/no-img-element -- 静的な小さいサムネイル。最適化は不要 */}
           <img src={howtoThumb(HOWTO_CHAPTERS[0].id)} alt="" className="w-full h-full object-cover" />
           <span className="absolute inset-0 flex items-center justify-center bg-black/15 group-hover:bg-black/5 transition-colors">
-            <span className="w-9 h-9 rounded-full bg-white/95 shadow flex items-center justify-center text-ocean-700">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
+            <span className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center text-ocean-700">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
                 <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" />
               </svg>
             </span>
           </span>
         </span>
-        <span className="min-w-0">
+        <span className="block px-2">
           <span className="block text-sm font-semibold text-gray-800 dark:text-zinc-100">はじめての方へ：使い方の動画</span>
           <span className="block mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
-            {HOWTO_CHAPTERS.length}チャプタ{TOTAL_SEC > 0 ? `・約${Math.max(1, Math.round(TOTAL_SEC / 60))}分` : ''}　見たいところから再生できます
+            見たいところから再生できます
           </span>
         </span>
       </button>
