@@ -5,6 +5,7 @@ import HandsonPanel from './components/HandsonPanel'
 import PromptBroadcastModal from './components/PromptBroadcastModal'
 import { ChatHeader, type ModelInfo } from './components/chat/ChatHeader'
 import { ChatWelcome, SuggestedPrompts } from './components/chat/ChatWelcome'
+import { HowtoVideoCard } from './components/HowtoVideo'
 import { ChatMessageItem } from './components/chat/ChatMessageItem'
 import { ChatComposer } from './components/chat/ChatComposer'
 import { useBroadcast } from './components/chat/useBroadcast'
@@ -544,6 +545,8 @@ export default function Home() {
 
           {/* ハンズオンテキスト表示中はサンプルプロンプトを出さず、ハンズオンの指示に集中させる */}
           {isEmpty && !panelOpen && <SuggestedPrompts onSelect={applyPromptText} />}
+          {/* 使い方の動画（研修の外でも操作を独学で確認できるように） */}
+          {isEmpty && !panelOpen && <HowtoVideoCard />}
         </div>
 
         {/* デスクトップ用スペーサ: パネルを開いている間はチャットを左半分へ収める枠を確保する。
