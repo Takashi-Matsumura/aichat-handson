@@ -477,7 +477,7 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <div className={`flex-1 flex flex-col min-w-0 min-h-0 ${
-          isEmpty ? 'justify-center-safe overflow-y-auto px-4 py-6' : ''
+          isEmpty ? 'justify-center-safe overflow-y-auto px-4 py-4' : ''
         }`}>
           <div className={isEmpty ? 'flex-none' : 'flex-1 overflow-y-auto px-4 py-4 space-y-4'}>
             {isEmpty && <ChatWelcome panelOpen={panelOpen} />}
