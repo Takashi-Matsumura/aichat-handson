@@ -50,6 +50,12 @@ describe('appendStreamChunk / finalizeStreamedMessage', () => {
     expect(msg.thinkingDone).toBe(false)
   })
 
+  it('<think> が重なって届いても(サーバーのプレフィル＋モデル自身)、まとめて取り除く', () => {
+    const msg = stream(assistant({ thinkingEnabled: true }), ['<think>\n', '<think>\n考え</think>\n答え'])
+    expect(msg.thinking).toBe('考え')
+    expect(msg.content).toBe('答え')
+  })
+
   it('</think> が最後まで来なければ、溜めた内容を本文として扱う', () => {
     const msg = stream(assistant({ thinkingEnabled: true }), ['<think>\n閉じタグの', 'ない回答'])
     expect(msg.content).toBe('閉じタグのない回答')
