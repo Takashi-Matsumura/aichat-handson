@@ -22,6 +22,17 @@ import {
 // /analytics などへ画面遷移して戻ってきても会話が消えないよう、タブ内で保持する(sessionStorage)。
 const MESSAGES_STORAGE_KEY = 'handson-chat-messages'
 
+// llama-server(モデル1/2)の稼働状況を取得する。接続できなければ offline として返す。
+async function fetchModelInfo(n: 1 | 2): Promise<ModelInfo> {
+  try {
+    const res = await fetch(`/api/model-info?n=${n}`, { cache: 'no-store' })
+    const data = await res.json()
+    return { model: data.model, label: data.label ?? null, online: data.model !== null, ctxSize: data.ctxSize ?? null, checked: true }
+  } catch {
+    return { model: null, label: null, online: false, ctxSize: null, checked: true }
+  }
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -38,8 +49,8 @@ export default function Home() {
   // 管理者が /presenter からモデル1(gemma-4-12b)を一時的に利用停止できる（大人数開催時の負荷対策）
   const [model1Enabled, setModel1Enabled] = useState(true)
   const [modelInfos, setModelInfos] = useState<Record<1 | 2, ModelInfo>>({
-    1: { model: null, label: null, online: false, ctxSize: null },
-    2: { model: null, label: null, online: false, ctxSize: null },
+    1: { model: null, label: null, online: false, ctxSize: null, checked: false },
+    2: { model: null, label: null, online: false, ctxSize: null, checked: false },
   })
   const [usedTokens, setUsedTokens] = useState(0)
   const displayedUsedTokens = messages.length === 0 ? 0 : usedTokens
@@ -114,6 +125,12 @@ export default function Home() {
     return () => { if (tokenizeTimerRef.current) clearTimeout(tokenizeTimerRef.current) }
   }, [messages, loading, selectedModel])
 
+  function refreshModelInfos() {
+    for (const n of [1, 2] as const) {
+      fetchModelInfo(n).then((info) => setModelInfos((prev) => ({ ...prev, [n]: info })))
+    }
+  }
+
   useEffect(() => {
     // ブラウザに保存した会話と設定を復元する。サーバー側で描画したHTMLと食い違わないよう
     // 初期値(useStateの初期化)ではなく読み込み後に反映し、緊急でない更新として扱う
@@ -150,20 +167,9 @@ export default function Home() {
     }
     fetchRagStatus()
 
-    async function fetchModelInfo(n: 1 | 2) {
-      try {
-        const res = await fetch(`/api/model-info?n=${n}`)
-        const data = await res.json()
-        setModelInfos((prev) => ({
-          ...prev,
-          [n]: { model: data.model, label: data.label ?? null, online: data.model !== null, ctxSize: data.ctxSize ?? null },
-        }))
-      } catch {
-        // オフラインのままにする
-      }
-    }
-    fetchModelInfo(1)
-    fetchModelInfo(2)
+    refreshModelInfos()
+    // 止めていたサーバーを起動し直したときに、タブへ戻れば選べるようにする
+    window.addEventListener('focus', refreshModelInfos)
 
     // 管理者によるモデル1(gemma-4-12b)の利用停止状態を取得する。
     async function fetchModelLock() {
@@ -182,7 +188,23 @@ export default function Home() {
       }
     }
     fetchModelLock()
+    return () => window.removeEventListener('focus', refreshModelInfos)
   }, [])
+
+  // 選択中のモデルのサーバーが落ちていて、もう一方が使えるなら自動で切り替える。
+  // 会話は消さない(ブラウザから復元した会話を勝手に失わないため)。
+  useEffect(() => {
+    const other: 1 | 2 = selectedModel === 1 ? 2 : 1
+    const current = modelInfos[selectedModel]
+    if (!current.checked || current.online || !modelInfos[other].online) return
+    if (other === 1 && !model1Enabled) return
+    startTransition(() => {
+      setSelectedModel(other)
+      if (other === 2) setThinking(false)
+    })
+    localStorage.setItem('selected-model', String(other))
+    if (other === 2) localStorage.setItem('thinking-mode', 'false')
+  }, [modelInfos, selectedModel, model1Enabled])
 
   // プロンプトを入力欄へ反映する共通処理。サンプルプロンプト・ハンズオンテキスト・
   // 講師からの配信プロンプトの3箇所から呼ぶ。
@@ -193,6 +215,7 @@ export default function Home() {
 
   function switchModel(n: 1 | 2) {
     if (n === 1 && !model1Enabled) return // 管理者による利用停止中
+    if (modelInfos[n].checked && !modelInfos[n].online) return // サーバー停止中
     // 生成中にモデルを切り替えると、進行中のリクエストがバックグラウンドに取り残され、
     // 応答が届いても表示先のメッセージが既に消えているため画面に反映されない。
     // 切り替え前に必ず中断してから messages をクリアする。
@@ -295,6 +318,9 @@ export default function Home() {
     })
 
     if (!response.ok) {
+      // AIサーバーに接続できなかった(503)ときは稼働状況を取り直す。選択中のモデルが
+      // 落ちていれば、上の useEffect がもう一方のモデルへ自動で切り替える。
+      if (response.status === 503) refreshModelInfos()
       const data = await response.json()
       throw new Error(data.error ?? 'エラーが発生しました')
     }
@@ -570,7 +596,8 @@ export default function Home() {
             // switchModel は会話を空にするため、すでにモデル2なら呼ばない。パネルは表示時・
             // 開いた時にもこれを呼ぶので、無条件に呼ぶとブラウザから復元した会話や
             // 進行中の会話が消えてしまう。
-            if (selectedModel !== 2) switchModel(2)
+            // モデル2のサーバーが止まっているときは切り替えない(使えないモデルに固定されるのを防ぐ)。
+            if (selectedModel !== 2 && modelInfos[2].online) switchModel(2)
           }}
         />
       </div>
