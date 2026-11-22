@@ -13,6 +13,12 @@ function averageLatencyMs(stats: { latencySumMs: number; latencyCount: number })
   return stats.latencyCount > 0 ? Math.round(stats.latencySumMs / stats.latencyCount) : null
 }
 
+// 出力トークン合計 ÷ 応答時間合計。応答時間には最初の1文字が出るまでの待ち時間も含むため、
+// 純粋な生成速度よりやや低めに出る「体感の生成速度」。
+function tokensPerSecond(stats: { outputTokens: number; latencySumMs: number }): number | null {
+  return stats.latencySumMs > 0 ? stats.outputTokens / (stats.latencySumMs / 1000) : null
+}
+
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<PersonalStats | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -83,7 +89,7 @@ export default function AnalyticsPage() {
                     <div key={model} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
                       <p className="text-sm font-semibold">{model}</p>
                       <p className="mt-1 text-xs text-foreground/50">利用件数 {m.requestCount.toLocaleString('ja-JP')}件</p>
-                      <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="mt-3 grid grid-cols-3 gap-3">
                         <div>
                           <p className="text-xs text-foreground/60">1件あたりコスト</p>
                           <p className="mt-0.5 text-lg font-semibold tabular-nums">
@@ -96,6 +102,15 @@ export default function AnalyticsPage() {
                             {(() => {
                               const ms = averageLatencyMs(m)
                               return ms != null ? `${(ms / 1000).toFixed(1)}秒` : '-'
+                            })()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-foreground/60" title="出力トークン数 ÷ 応答時間（待ち時間を含む）">生成速度</p>
+                          <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                            {(() => {
+                              const tps = tokensPerSecond(m)
+                              return tps != null ? `${tps.toFixed(1)} tok/s` : '-'
                             })()}
                           </p>
                         </div>
