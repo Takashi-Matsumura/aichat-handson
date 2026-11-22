@@ -5,7 +5,7 @@
 // 出力は短い文章なので、JSONにはせず、届いた差分をそのまま onDelta に渡す。
 
 import { HANDSON_PAGES } from '@/lib/handson/pages'
-import { LLAMA_MODEL } from '@/lib/llama/config'
+import { LLAMA_MODEL, NO_BUILTIN_REASONING } from '@/lib/llama/config'
 import { readChatContentStream } from '@/lib/llm/stream'
 import { buildExplainSystemPrompt, buildExplainUserPrompt, extractChapterSection, type ExplainRequest } from './explain'
 import { QUIZ_LLAMA_URL, readHandsonMarkdown } from './generate'
@@ -49,6 +49,7 @@ export async function streamExplanation(
         stream: true,
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
+        ...NO_BUILTIN_REASONING,
       }),
       signal,
     })

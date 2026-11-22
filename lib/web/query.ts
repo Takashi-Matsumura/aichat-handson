@@ -3,6 +3,7 @@
 // 「それについてもっと詳しく」のような発言をそのまま検索しても意味のある結果は返らないため、
 // 直近の会話をLLMに渡して検索キーワードに書き換えさせる。失敗したら最後の発言をそのまま使う。
 
+import { NO_BUILTIN_REASONING } from '@/lib/llama/config'
 import { WEB_SEARCH_CONFIG } from './config'
 
 export type QueryMessage = { role: 'user' | 'assistant'; content: string }
@@ -78,8 +79,7 @@ export async function generateSearchQuery(
         temperature: 0,
         max_tokens: 64,
         // 推論(thinking)対応モデルで思考に生成枠を使い切らないよう、思考を無効にする。
-        // 対応していないチャットテンプレートでは無視される。
-        chat_template_kwargs: { enable_thinking: false },
+        ...NO_BUILTIN_REASONING,
       }),
       signal: AbortSignal.timeout(WEB_SEARCH_CONFIG.queryTimeoutMs),
     })
