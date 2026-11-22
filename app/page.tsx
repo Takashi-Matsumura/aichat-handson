@@ -43,6 +43,9 @@ export default function Home() {
   const [panelFull, setPanelFull] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [ragMode, setRagMode] = useState(false)
+  const [webMode, setWebMode] = useState(false)
+  // SearXNG が設定済み・稼働中のときのみtrue
+  const [webAvailable, setWebAvailable] = useState(false)
   // 知識ソースが登録されている(chunkCount > 0)、かつ埋め込みサーバーが起動しているときのみtrue
   const [ragAvailable, setRagAvailable] = useState(false)
   const [selectedModel, setSelectedModel] = useState<1 | 2>(1)
@@ -149,6 +152,7 @@ export default function Home() {
       setPanelOpen(localStorage.getItem('handson-panel-open') === 'true')
       setThinking(localStorage.getItem('thinking-mode') === 'true')
       setRagMode(localStorage.getItem('rag-mode') === 'true')
+      setWebMode(localStorage.getItem('web-mode') === 'true')
       const saved = localStorage.getItem('selected-model')
       if (saved === '2') setSelectedModel(2)
       setPanelMounted(true)
@@ -166,6 +170,18 @@ export default function Home() {
       }
     }
     fetchRagStatus()
+
+    // Web検索(SearXNG)が使えるか(=Web検索トグルを有効にできるか)を確認する。
+    async function fetchWebStatus() {
+      try {
+        const res = await fetch('/api/web/status', { cache: 'no-store' })
+        const data = await res.json()
+        setWebAvailable(data.online === true)
+      } catch {
+        setWebAvailable(false)
+      }
+    }
+    fetchWebStatus()
 
     refreshModelInfos()
     // 止めていたサーバーを起動し直したときに、タブへ戻れば選べるようにする
@@ -256,6 +272,13 @@ export default function Home() {
     })
   }
 
+  function toggleWeb() {
+    setWebMode((prev) => {
+      localStorage.setItem('web-mode', String(!prev))
+      return !prev
+    })
+  }
+
   async function handleTokenToggle(index: number, content: string, hasTokens: boolean) {
     if (hasTokens) {
       setMessages(prev => prev.map((m, j) =>
@@ -301,6 +324,7 @@ export default function Home() {
     useThink: boolean,
     modelIdx: 1 | 2,
     useRag: boolean,
+    useWeb: boolean,
   ) {
     const update = (updater: (msg: Message) => Message) =>
       setMessages(prev => {
@@ -313,7 +337,7 @@ export default function Home() {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx, rag: useRag }),
+      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx, rag: useRag, web: useWeb }),
       signal: abortControllerRef.current.signal,
     })
 
@@ -350,6 +374,11 @@ export default function Home() {
           continue
         }
 
+        if (parsed.handson_web) {
+          update(msg => ({ ...msg, web: parsed.handson_web, showWebSources: false }))
+          continue
+        }
+
         if (parsed.handson_stats) {
           recordPersonalStat(parsed.handson_stats)
           continue
@@ -371,10 +400,11 @@ export default function Home() {
     setError(null)
     const useThink = thinking
     const useRag = ragMode && ragAvailable
+    const useWeb = webMode && webAvailable
     const userMessage: Message = { role: 'user', content: text }
     const history = [...messages, userMessage]
     const targetIndex = history.length
-    setMessages([...history, { role: 'assistant', content: '', thinkingEnabled: useThink, ragEnabled: useRag }])
+    setMessages([...history, { role: 'assistant', content: '', thinkingEnabled: useThink, ragEnabled: useRag, webEnabled: useWeb }])
     setInput('')
     setLoading(true)
     setStreamingIndex(targetIndex)
@@ -386,6 +416,7 @@ export default function Home() {
         useThink,
         selectedModel,
         useRag,
+        useWeb,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -419,6 +450,7 @@ export default function Home() {
     setError(null)
     const useThink = thinking
     const useRag = ragMode && ragAvailable
+    const useWeb = webMode && webAvailable
     const prevVersions = [...(msg.versions ?? []), msg.content]
 
     setMessages(prev => prev.map((m, j) =>
@@ -438,6 +470,9 @@ export default function Home() {
         ragEnabled: useRag,
         sources: undefined,
         showSources: undefined,
+        webEnabled: useWeb,
+        web: undefined,
+        showWebSources: undefined,
       }
     ))
     setLoading(true)
@@ -450,6 +485,7 @@ export default function Home() {
         useThink,
         selectedModel,
         useRag,
+        useWeb,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -483,7 +519,7 @@ export default function Home() {
   }
 
   // メッセージ1件の表示状態(思考過程・参照資料の開閉)を切り替える
-  function toggleMessageFlag(index: number, key: 'showThinking' | 'showSources') {
+  function toggleMessageFlag(index: number, key: 'showThinking' | 'showSources' | 'showWebSources') {
     setMessages(prev => prev.map((m, j) => (j === index ? { ...m, [key]: !m[key] } : m)))
   }
 
@@ -521,6 +557,7 @@ export default function Home() {
                 onDeleteVersion={() => handleDeleteVersion(i)}
                 onTokenToggle={() => handleTokenToggle(i, msg.content, !!msg.tokens)}
                 onToggleSources={() => toggleMessageFlag(i, 'showSources')}
+                onToggleWebSources={() => toggleMessageFlag(i, 'showWebSources')}
               />
             ))}
             {error && (
@@ -564,6 +601,9 @@ export default function Home() {
             ragAvailable={ragAvailable}
             ragMode={ragMode}
             onToggleRag={toggleRag}
+            webAvailable={webAvailable}
+            webMode={webMode}
+            onToggleWeb={toggleWeb}
             showThinkingToggle={selectedModel === 1}
             thinking={thinking}
             onToggleThinking={toggleThinking}
