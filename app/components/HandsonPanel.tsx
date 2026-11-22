@@ -189,7 +189,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
         <div className="relative flex items-center gap-2">
           <div ref={tabsWrapRef} className="flex-1 min-w-0 overflow-hidden">
             <div className="flex gap-1 pb-px w-max">
-              {PAGES.map((page) => {
+              {PAGES.map((page, i) => {
                 const active = currentPage === page.id
                 return (
                   <button
@@ -206,7 +206,8 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
                         : 'border-transparent text-ocean-200 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    {compactTabs ? page.id : page.title}
+                    {/* id は非表示のテキストがあると飛び番になるため、並び順の番号を出す */}
+                    {compactTabs ? i + 1 : page.title}
                   </button>
                 )
               })}
