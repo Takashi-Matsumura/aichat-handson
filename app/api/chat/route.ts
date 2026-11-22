@@ -12,14 +12,9 @@ import { isWebSearchConfigured } from '@/lib/web/config'
 import { LLAMA_MODEL, LLAMA_URLS, NO_BUILTIN_REASONING } from '@/lib/llama/config'
 import { MAX_MESSAGES, MAX_TOTAL_CHARS, parseMessages } from '@/lib/chat/limits'
 import { readJsonObject } from '@/lib/http/json'
+import { ANALYTICS_MODEL_NAMES } from '@/lib/llama/models'
 import { THINKING_SYSTEM_PROMPT, prependThinkPrefill, withThinkPrefill } from '@/lib/llm/think'
 
-// llama.cpp へのリクエストで送るモデル名(LLAMA_MODEL)は環境変数1つの共通値だが、
-// 利用状況分析・推定コスト算出のためにはモデル1/2を区別した実際のモデル名が要る。
-const ANALYTICS_MODEL_NAMES: Record<number, string> = {
-  1: 'gemma-4-12b',
-  2: 'gemma-3-4b',
-}
 // 1リクエストあたりの生成トークン数の上限。モデルが reasoning_content を延々と吐き続けるなど
 // 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
 const MAX_TOKENS = Number(process.env.LLAMA_MAX_TOKENS ?? 2048)
