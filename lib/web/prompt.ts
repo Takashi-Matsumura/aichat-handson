@@ -19,14 +19,18 @@ export type WebSearchInfo = {
 const TITLE_MAX = 200
 const SNIPPET_MAX = 400
 
-// 検索結果は第三者のWebページ由来の信頼できないテキスト。抜粋に混ざるHTMLタグ・コメントと、
-// systemプロンプト内の区切りタグ(偽装されうる)を取り除き、改行・連続空白を詰める。
+// 検索結果は第三者のWebページ由来の信頼できないテキスト。抜粋に混ざるHTMLタグ・コメントを
+// 取り除いたうえで山括弧を全角に置き換え(systemプロンプト内の区切りタグを偽装させない)、
+// 改行・連続空白を詰める。
 function sanitizeText(value: unknown, max: number): string {
   if (typeof value !== 'string') return ''
   const text = value
     .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<\/?[a-z][^>]*>/gi, ' ')
-    .replace(/<\/?\s*search_results?\s*>/gi, '')
+    // 区切りタグを「消す」方式は表記ゆれ(< /search_results> 等)ですり抜けられるため、
+    // 残った山括弧はすべて全角にして、どんな文字列でもタグとして解釈されないようにする。
+    .replace(/</g, '＜')
+    .replace(/>/g, '＞')
     .replace(/\s+/g, ' ')
     .trim()
   return text.length > max ? `${text.slice(0, max)}…` : text

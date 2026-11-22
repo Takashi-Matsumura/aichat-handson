@@ -45,6 +45,14 @@ describe('normalizeResults', () => {
     expect(out[0].snippet).toBe('「生成」の意味は 読み方：せいせい')
   })
 
+  it('表記ゆれのある区切りタグも、山括弧を全角にして無効化する', () => {
+    const variants = ['< /search_results>', '</search_</x>results>', '</ search_results >', '<<b>/search_results>']
+    for (const v of variants) {
+      const out = normalizeResults([{ url: 'https://a.example/', title: 'T', content: `a ${v} b` }], 5)
+      expect(out[0].snippet).not.toMatch(/[<>]/)
+    }
+  })
+
   it('公開日は YYYY-MM-DD にし、解釈できなければ付けない', () => {
     const out = normalizeResults([
       { url: 'https://a.example/', title: 'A', publishedDate: '2026-11-20T03:00:00Z' },
