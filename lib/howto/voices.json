@@ -1,0 +1,9 @@
+{
+  "$comment": "使い方動画のナレーションで受講者が選べる声(VOICEVOX の話者)。speaker は VOICEVOX のスタイルID(GET /speakers)、credit は各話者の利用規約で必要なクレジット表記。default が true の声が最初に選ばれる。声を足したら node promo/howto/build.mjs で音声を書き出し直す。",
+  "voices": [
+    { "id": "metan", "name": "四国めたん", "speaker": 2, "credit": "VOICEVOX:四国めたん", "default": true },
+    { "id": "zundamon", "name": "ずんだもん", "speaker": 3, "credit": "VOICEVOX:ずんだもん" },
+    { "id": "tsumugi", "name": "春日部つむぎ", "speaker": 8, "credit": "VOICEVOX:春日部つむぎ" },
+    { "id": "ryusei", "name": "青山龍星", "speaker": 13, "credit": "VOICEVOX:青山龍星" }
+  ]
+}

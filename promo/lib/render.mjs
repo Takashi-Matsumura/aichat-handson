@@ -116,7 +116,7 @@ export function trim(shot, since, until) {
  * dir のフレームを mp4 にする。captions は [{ png, at }]。at は素材の目印の名前か、仕上がりの秒。
  * 字幕は次の字幕の at まで出す（最後の字幕は終わりまで）。
  * since / until は素材の切り出し（trim）。
- * 仕上がりの長さ（秒）を返す。
+ * 仕上がりの長さ（秒）・早送りの倍率・各字幕を出す区間（仕上がりの秒）を返す。
  */
 export function renderClip(
   dir,
@@ -169,7 +169,11 @@ export function renderClip(
   chain += `;[v${captions.length}]tpad=stop_mode=clone:stop_duration=${total.toFixed(3)},${edgeFade(total)}[out]`;
   args.push("-filter_complex", chain, "-map", "[out]", "-t", total.toFixed(3), ...ENCODE, outFile);
   execFileSync("ffmpeg", args, { stdio: "inherit" });
-  return { total, speed };
+  return {
+    total,
+    speed,
+    captions: captions.map((c) => ({ from: Number(c.from), to: c.to === undefined ? total : Number(c.to) })),
+  };
 }
 
 /**
