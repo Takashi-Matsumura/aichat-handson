@@ -11,4 +11,7 @@ export const HANDSON_PAGES: HandsonPage[] = [
   // コンテンツ（handson4.md）は削除しておらず、再度必要になれば以下のコメントを外すだけで良い。
   // （確認テストの出題範囲にも自動的に含まれるようになる）
   // { id: 4, title: 'AIの推論とエージェント', file: '/handson/handson4.md' },
+  // Web検索トグルが押せない環境(SEARXNG_URL 未設定・SearXNG 停止中)では演習ができないため、
+  // その場合はこの行をコメントアウトして非表示にする。
+  { id: 5, title: 'AIとWeb検索', file: '/handson/handson5.md' },
 ]
