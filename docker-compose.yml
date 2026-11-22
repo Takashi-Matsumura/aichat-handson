@@ -44,8 +44,6 @@ services:
       WEB_SEARCH_TIMEOUT_MS:      ${WEB_SEARCH_TIMEOUT_MS:-8000}
       WEB_SEARCH_QUERY_TIMEOUT_MS: ${WEB_SEARCH_QUERY_TIMEOUT_MS:-15000}
       WEB_SEARCH_LANGUAGE:        ${WEB_SEARCH_LANGUAGE:-ja}
-      # /analytics に稼働状況を表示する VOICEVOX（このアプリでは未使用）。空にすると「未設定」と表示
-      VOICEVOX_URL:               ${VOICEVOX_URL-http://host.docker.internal:50021}
     volumes:
       # 講師が研修当日に資料(.md/.txt)を置くフォルダ。未マウントならRAGは無効のまま動作する。
       - ./knowledge:/app/knowledge:ro
