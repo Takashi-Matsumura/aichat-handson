@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 
-export type ModelInfo = { model: string | null; label: string | null; online: boolean; ctxSize: number | null }
+// checked: 稼働状況の問い合わせが一度でも終わったか。終わる前は「オフライン」と決めつけない。
+export type ModelInfo = { model: string | null; label: string | null; online: boolean; ctxSize: number | null; checked: boolean }
 
 type Props = {
   modelInfos: Record<1 | 2, ModelInfo>
@@ -20,7 +21,9 @@ type Props = {
 function shortModelName(info: ModelInfo, n: 1 | 2): string {
   if (info.label) return info.label
   if (!info.model) return `モデル ${n}`
-  const base = info.model.replace(/\.gguf$/i, '').replace(/[_]/g, '-')
+  // llama-server がフルパスでモデルを返す場合があるので、ファイル名部分だけを使う
+  const fileName = info.model.split(/[\\/]/).pop() || info.model
+  const base = fileName.replace(/\.gguf$/i, '').replace(/[_]/g, '-')
   const parts = base.split('-')
   return parts.slice(0, 3).join('-')
 }
@@ -47,21 +50,25 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
       <div className="flex items-center gap-1 rounded-xl border border-gray-200 dark:border-zinc-600 p-0.5 justify-self-center">
         {([1, 2] as const).map((n) => {
           const locked = n === 1 && !model1Enabled
+          const offline = modelInfos[n].checked && !modelInfos[n].online
+          const unavailable = locked || offline
           return (
           <button
             key={n}
             type="button"
-            disabled={locked}
+            disabled={unavailable}
             onClick={() => { if (!panelOpen) onSwitchModel(n) }}
             title={
               locked
                 ? '管理者により一時的に利用停止中です'
-                : panelOpen
+                : offline
+                  ? `AIサーバーに接続できません（ポート ${n === 1 ? 8080 : 8081}）`
+                  : panelOpen
                   ? 'ハンズオンページに応じて自動切替'
                   : (modelInfos[n].model ?? `ポート ${n === 1 ? 8080 : 8081}`)
             }
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-              locked
+              unavailable
                 ? 'text-gray-300 dark:text-zinc-600 cursor-not-allowed opacity-60'
                 : selectedModel === n
                   ? 'bg-ocean-700 text-white'
