@@ -14,6 +14,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  experimental: {
+    // next dev / next build で、脆弱性のある Next.js を使っているとアップグレードを促す(既定値と同じ)
+    agentUpgrade: 'security',
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
