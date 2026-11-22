@@ -1,0 +1,38 @@
+# AIチャットの Web検索で使う SearXNG(自前ホストのメタ検索エンジン)の設定。
+# docker-compose.yml の searxng サービスが読み込む。既定の設定を引き継ぎ、必要な箇所だけ上書きする。
+# 詳細: https://docs.searxng.org/admin/settings/index.html
+use_default_settings:
+  # 既定の検索エンジンの多くは、短時間に問い合わせが集中すると CAPTCHA やレート制限で
+  # 結果を返さなくなる(研修会場から一斉に使うと特に)。応答しないエンジンは検索のたびに
+  # タイムアウトまで待たされるため、使うものだけに絞る。結果が0件ばかりになったら、
+  # /search?q=test&format=json の unresponsive_engines を見てここを調整すること。
+  engines:
+    keep_only:
+      - bing
+      - bing news
+      - duckduckgo
+      - brave
+      - wikipedia
+
+general:
+  instance_name: "aichat-handson"
+
+search:
+  # 0: なし / 1: 中程度 / 2: 厳しい
+  safe_search: 1
+  default_lang: "ja"
+  # アプリ(app/api/chat)から JSON API で検索するため json を有効にする
+  formats:
+    - html
+    - json
+
+server:
+  # secret_key は環境変数 SEARXNG_SECRET で上書きされる(docker-compose.yml 参照)
+  secret_key: "set-SEARXNG_SECRET-env"
+  # アプリからのみ使う非公開インスタンスのため、ボット対策のレート制限は使わない
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+ui:
+  default_locale: "ja"

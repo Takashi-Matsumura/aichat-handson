@@ -37,6 +37,13 @@ services:
       RAG_EMBED_DOC_PREFIX:       ${RAG_EMBED_DOC_PREFIX:-}
       ANALYTICS_DB_PATH:          ${ANALYTICS_DB_PATH:-./data/analytics.db}
       PRESENTER_PROMPTS_PATH:     ${PRESENTER_PROMPTS_PATH:-./data/presenter-prompts.json}
+      # Web検索（インターネット情報を使った回答）。下の searxng サービスに問い合わせる。
+      # 空にするとWeb検索機能は無効になる。
+      SEARXNG_URL:                ${SEARXNG_URL-http://searxng:8080}
+      WEB_SEARCH_TOP_K:           ${WEB_SEARCH_TOP_K:-5}
+      WEB_SEARCH_TIMEOUT_MS:      ${WEB_SEARCH_TIMEOUT_MS:-8000}
+      WEB_SEARCH_QUERY_TIMEOUT_MS: ${WEB_SEARCH_QUERY_TIMEOUT_MS:-15000}
+      WEB_SEARCH_LANGUAGE:        ${WEB_SEARCH_LANGUAGE:-ja}
     volumes:
       # 講師が研修当日に資料(.md/.txt)を置くフォルダ。未マウントならRAGは無効のまま動作する。
       - ./knowledge:/app/knowledge:ro
@@ -49,6 +56,23 @@ services:
       # host.docker.internal はDocker Desktop(Mac/Windows)では標準で使えるが、
       # Linux(Docker Engine)では明示しないと解決できないため追加しておく。
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # ── SearXNG（Web検索用のメタ検索エンジン）────────────────────────────────
+  # 受講者の検索キーワードは、ここから Google / Bing / DuckDuckGo などへ転送される。
+  # アプリからのみ使うため外部には公開しない(ホストの 127.0.0.1 にだけ開けるのは、
+  # コンテナ外で npm run dev するときに http://localhost:8888 で使えるようにするため)。
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "127.0.0.1:8888:8080"
+    environment:
+      # 非公開・レート制限なしで使うため影響は小さいが、.env で独自の値にしておくこと
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-aichat-handson-change-me}
+    volumes:
+      - ./deploy/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - aichat-net
     restart: unless-stopped
 
   # ── llama.cpp（コンテナ化する場合）────────────────────────────────────────

@@ -2,6 +2,7 @@
 // React に依存しないため、ここに置いて単体テストする(lib/chat/messages.test.ts)。
 
 import type { SourceRef } from '@/lib/rag/prompt'
+import type { WebSearchInfo } from '@/lib/web/prompt'
 
 export type Token = { id: number; piece: string }
 
@@ -23,14 +24,20 @@ export type Message = {
   // [] = 検索したが該当する資料が無かった
   sources?: SourceRef[]
   showSources?: boolean
+  webEnabled?: boolean
+  // undefined = まだ受信していない（Web検索OFF、または検索中）
+  web?: WebSearchInfo
+  showWebSources?: boolean
 }
 
 // /api/chat が返すSSEの1イベント分。llama.cpp の OpenAI互換チャンクに加え、
-// サーバーが先頭に参照資料(handson_sources)、末尾に利用実績(handson_stats)を差し込む。
+// サーバーが先頭に参照資料(handson_sources)・Web検索の実施内容(handson_web)、
+// 末尾に利用実績(handson_stats)を差し込む。
 export type ChatStreamPayload = {
   choices?: { delta?: { content?: string } }[]
   error?: string
   handson_sources?: SourceRef[]
+  handson_web?: WebSearchInfo
   handson_stats?: { model: string; inputTokens: number; outputTokens: number; estimatedCost: number; latencyMs: number }
 }
 
