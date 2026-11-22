@@ -1,7 +1,84 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { HOWTO_CHAPTERS, formatDuration, howtoThumb, howtoVideo } from '@/lib/howto/chapters'
+import { useEffect, useRef, useState, type RefObject } from 'react'
+import {
+  DEFAULT_HOWTO_VOICE,
+  HOWTO_CHAPTERS,
+  HOWTO_VOICES,
+  formatDuration,
+  howtoNarration,
+  howtoThumb,
+  howtoVideo,
+} from '@/lib/howto/chapters'
+
+const VOICE_STORAGE_KEY = 'howto-voice'
+// 動画と音声のずれがこれを超えたら、音声を動画の位置に合わせ直す(秒)。
+const MAX_DRIFT_SEC = 0.25
+
+function loadVoiceId(): string {
+  try {
+    const saved = localStorage.getItem(VOICE_STORAGE_KEY)
+    if (saved && HOWTO_VOICES.some((v) => v.id === saved)) return saved
+  } catch {
+    /* 保存領域が使えない環境では既定の声 */
+  }
+  return DEFAULT_HOWTO_VOICE.id
+}
+
+// ナレーションの音声(<audio>)を、動画(<video>)の再生・一時停止・シーク・速度・音量に追従させる。
+// 動画には無音の音声トラックしか入っておらず、声は受講者が選んだ声の音声ファイルで流す。
+function useNarrationSync(videoRef: RefObject<HTMLVideoElement | null>, audioRef: RefObject<HTMLAudioElement | null>) {
+  useEffect(() => {
+    const video = videoRef.current
+    const audio = audioRef.current
+    if (!video || !audio) return
+    const syncTime = () => {
+      if (Math.abs(audio.currentTime - video.currentTime) > MAX_DRIFT_SEC) audio.currentTime = video.currentTime
+    }
+    const play = () => {
+      syncTime()
+      audio.play().catch(() => {})
+    }
+    const pause = () => audio.pause()
+    const seek = () => {
+      audio.currentTime = video.currentTime
+    }
+    const rate = () => {
+      audio.playbackRate = video.playbackRate
+    }
+    const volume = () => {
+      audio.volume = video.volume
+      audio.muted = video.muted
+    }
+    const tick = () => {
+      if (!video.paused) syncTime()
+    }
+    // 声やチャプタを切り替えて音声を読み込み直したら、動画の位置・状態に合わせる
+    const loaded = () => {
+      audio.currentTime = video.currentTime
+      rate()
+      volume()
+      if (!video.paused && !video.ended) audio.play().catch(() => {})
+    }
+    const events: [EventTarget, string, () => void][] = [
+      [video, 'playing', play],
+      [video, 'play', play],
+      [video, 'pause', pause],
+      [video, 'waiting', pause],
+      [video, 'ended', pause],
+      [video, 'seeking', seek],
+      [video, 'seeked', seek],
+      [video, 'ratechange', rate],
+      [video, 'volumechange', volume],
+      [video, 'timeupdate', tick],
+      [audio, 'loadedmetadata', loaded],
+    ]
+    for (const [target, name, fn] of events) target.addEventListener(name, fn)
+    return () => {
+      for (const [target, name, fn] of events) target.removeEventListener(name, fn)
+    }
+  }, [videoRef, audioRef])
+}
 
 // トップページ（会話が始まる前）に出す、アプリの使い方動画の入口。押すとチャプタ付きのプレーヤーが開く。
 // 研修の外でも、操作を独学で確認できるようにするためのもの。
@@ -39,8 +116,21 @@ export function HowtoVideoCard() {
 
 function HowtoVideoModal({ onClose }: { onClose: () => void }) {
   const [current, setCurrent] = useState(0)
+  const [voiceId, setVoiceId] = useState(loadVoiceId)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
   const chapter = HOWTO_CHAPTERS[current]
+  const voice = HOWTO_VOICES.find((v) => v.id === voiceId) ?? DEFAULT_HOWTO_VOICE
+  useNarrationSync(videoRef, audioRef)
+
+  function changeVoice(id: string) {
+    setVoiceId(id)
+    try {
+      localStorage.setItem(VOICE_STORAGE_KEY, id)
+    } catch {
+      /* 保存できなくても、この再生中は切り替わる */
+    }
+  }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -99,8 +189,11 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
               }}
               className="w-full aspect-video"
             />
+            {/* 選んだ声のナレーション。動画の操作に追従させる(useNarrationSync) */}
+            <audio ref={audioRef} src={howtoNarration(chapter.id, voice.id)} preload="auto" />
           </div>
-          <ol className="flex-none lg:w-72 lg:overflow-y-auto p-2 space-y-1">
+          <div className="flex-none lg:w-72 flex flex-col lg:overflow-hidden">
+          <ol className="lg:flex-1 lg:overflow-y-auto p-2 space-y-1">
             {HOWTO_CHAPTERS.map((c, i) => (
               <li key={c.id}>
                 <button
@@ -126,6 +219,23 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
               </li>
             ))}
           </ol>
+          <div className="flex-none flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-gray-100 dark:border-zinc-700 px-4 py-2">
+            <label className="flex items-center gap-2 whitespace-nowrap text-xs text-gray-600 dark:text-zinc-300">
+              ナレーションの声
+              <select
+                value={voice.id}
+                onChange={(e) => changeVoice(e.target.value)}
+                className="rounded-lg border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-1 text-xs text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400"
+              >
+                {HOWTO_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </label>
+            {/* ナレーションに使った音声合成ソフトのクレジット(各話者の利用規約で表記が必要) */}
+            <span className="whitespace-nowrap text-[11px] text-gray-400 dark:text-zinc-500">{voice.credit}</span>
+          </div>
+          </div>
         </div>
       </div>
     </div>
