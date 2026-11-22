@@ -18,13 +18,16 @@ type Props = {
   ragAvailable: boolean
   ragMode: boolean
   onToggleRag: () => void
+  webAvailable: boolean
+  webMode: boolean
+  onToggleWeb: () => void
   // 推論モードのトグルは推論に対応するモデル(gemma-4-12b)選択時のみ出す
   showThinkingToggle: boolean
   thinking: boolean
   onToggleThinking: () => void
 }
 
-// チャットの入力フォーム。コンテキスト使用量・新規チャット・RAG/推論モードのトグル・入力欄・送信/停止ボタン。
+// チャットの入力フォーム。コンテキスト使用量・新規チャット・RAG/Web検索/推論モードのトグル・入力欄・送信/停止ボタン。
 export function ChatComposer({
   isEmpty,
   input,
@@ -39,6 +42,9 @@ export function ChatComposer({
   ragAvailable,
   ragMode,
   onToggleRag,
+  webAvailable,
+  webMode,
+  onToggleWeb,
   showThinkingToggle,
   thinking,
   onToggleThinking,
@@ -79,6 +85,17 @@ export function ChatComposer({
           </div>
         )
       })() : null}
+      {/* Web検索ONの間は、入力内容をもとにした検索キーワードが外部へ送られることを明示する */}
+      {webAvailable && webMode && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs text-sky-700 dark:text-sky-400">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          Web検索ON：質問から作った検索キーワードがインターネットの検索エンジンへ送られます。個人情報や社外秘は入力しないでください。
+        </p>
+      )}
       <div className="flex items-end gap-2">
         {!isEmpty && (
           <button
@@ -122,6 +139,34 @@ export function ChatComposer({
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             <line x1="9" y1="7" x2="15" y2="7" />
             <line x1="9" y1="11" x2="14" y2="11" />
+          </svg>
+        </button>
+        {/* Web検索トグル */}
+        <button
+          type="button"
+          onClick={onToggleWeb}
+          disabled={!webAvailable}
+          title={
+            !webAvailable
+              ? 'Web検索は利用できません（検索サーバーが設定されていないか、停止しています）'
+              : webMode
+              ? 'Web検索 ON（インターネットを検索して回答。クリックでOFF）'
+              : 'Web検索 OFF（クリックでON）'
+          }
+          aria-label="Web検索"
+          aria-pressed={webMode}
+          className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
+            !webAvailable
+              ? 'border-gray-100 dark:border-zinc-700 text-gray-300 dark:text-zinc-700 cursor-not-allowed'
+              : webMode
+              ? 'border-sky-400 bg-sky-50 text-sky-500 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-400'
+              : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
         </button>
         {/* 推論モードトグル（推論に対応するgemma-4-12b選択時のみ表示） */}

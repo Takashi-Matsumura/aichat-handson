@@ -6,6 +6,7 @@ import remarkMath from 'remark-math'
 import remarkCjkFriendly from 'remark-cjk-friendly'
 import rehypeKatex from 'rehype-katex'
 import SourcesPanel from '@/app/components/SourcesPanel'
+import WebSourcesPanel from '@/app/components/WebSourcesPanel'
 import { displayedContent, type Message } from '@/lib/chat/messages'
 
 // LLMの出力(回答・思考過程)を表示するときのMarkdown設定。画像は読み込まず代替テキストだけ表示する。
@@ -41,6 +42,7 @@ type Props = {
   onDeleteVersion: () => void
   onTokenToggle: () => void
   onToggleSources: () => void
+  onToggleWebSources: () => void
 }
 
 // チャットの吹き出し1件分。回答には思考過程・トークン表示・再生成・バージョン切り替え・参照資料を付ける。
@@ -56,6 +58,7 @@ export function ChatMessageItem({
   onDeleteVersion,
   onTokenToggle,
   onToggleSources,
+  onToggleWebSources,
 }: Props) {
   const isGenerating = loading && isStreamingTarget
   return (
@@ -131,6 +134,9 @@ export function ChatMessageItem({
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
                   </span>
+                  {isGenerating && msg.webEnabled && msg.web === undefined && (
+                    <span className="not-prose text-xs text-sky-600 dark:text-sky-400">Webを検索しています…</span>
+                  )}
                   {isStreamingTarget && elapsedSec >= 8 && (
                     <div className="not-prose flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
                       <span>応答に時間がかかっています…（{elapsedSec}秒経過）</span>
@@ -269,6 +275,15 @@ export function ChatMessageItem({
             sources={msg.sources}
             open={!!msg.showSources}
             onToggle={onToggleSources}
+          />
+        )}
+
+        {/* 参照したWebページ。webが未受信(undefined)のうちは表示しない */}
+        {msg.role === 'assistant' && msg.web !== undefined && (
+          <WebSourcesPanel
+            web={msg.web}
+            open={!!msg.showWebSources}
+            onToggle={onToggleWebSources}
           />
         )}
       </div>

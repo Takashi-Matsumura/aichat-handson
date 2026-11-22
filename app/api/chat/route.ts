@@ -5,6 +5,10 @@ import { estimateCost } from '@/lib/analytics/pricing'
 import { isModel1Enabled } from '@/lib/settings/store'
 import { retrieve } from '@/lib/rag/search'
 import { buildContextBlock, toSourceRefs, type SourceRef } from '@/lib/rag/prompt'
+import { searchWeb } from '@/lib/web/search'
+import { generateSearchQuery } from '@/lib/web/query'
+import { buildWebContextBlock, formatToday, type WebSearchInfo } from '@/lib/web/prompt'
+import { isWebSearchConfigured } from '@/lib/web/config'
 import { LLAMA_MODEL, LLAMA_URLS, NO_BUILTIN_REASONING } from '@/lib/llama/config'
 import { MAX_MESSAGES, MAX_TOTAL_CHARS, parseMessages } from '@/lib/chat/limits'
 import { readJsonObject } from '@/lib/http/json'
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   }
-  const { thinking, modelIndex, rag } = payload!
+  const { thinking, modelIndex, rag, web } = payload!
   const n = modelIndex === 2 ? 2 : 1
   // フロント側の制御をすり抜けて直接APIが叩かれた場合の保険。
   if (n === 1 && !isModel1Enabled()) {
@@ -85,6 +89,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Web検索: 会話から検索クエリを作り、SearXNG で検索する。RAGと同じく例外を投げない設計で、
+  // 検索に失敗してもチャット自体は通常どおり動く(失敗したことは画面に表示する)。
+  // クエリ生成には、いま稼働を確認できている選択中のモデルを使う。
+  let webInfo: WebSearchInfo | null = null
+  let webContext = ''
+  if (web === true && isWebSearchConfigured()) {
+    const today = formatToday()
+    const query = await generateSearchQuery(LLAMA_URL, LLAMA_MODEL, messages, today)
+    const { sources: webSources, failed } = await searchWeb(query)
+    webInfo = failed ? { query, sources: [], failed: true } : { query, sources: webSources }
+    webContext = buildWebContextBlock(webInfo, today)
+  }
+
   // systemメッセージは必ず1個に連結する。Gemmaのチャットテンプレートにはsystemロールが
   // 無く、llama.cpp側で先頭userメッセージへ畳み込まれる。system を複数個並べると
   // テンプレート実装によっては2個目以降が無視される等、環境依存の事故になりうるため。
@@ -92,6 +109,7 @@ export async function POST(request: NextRequest) {
   // モデルがそれに引きずられて回答自体を拒否しがちになるため、素のLLMとして答えさせる。
   const systemParts: string[] = []
   if (ragContext) systemParts.push(ragContext)
+  if (webContext) systemParts.push(webContext)
   const allMessages = systemParts.length > 0
     ? [{ role: 'system', content: systemParts.join('\n\n---\n\n') }, ...messages]
     : messages
@@ -150,24 +168,25 @@ export async function POST(request: NextRequest) {
     'X-Accel-Buffering': 'no',
   }
   if (setCookieHeader) headers['Set-Cookie'] = setCookieHeader
-  let body = rag === true ? prependSourcesEvent(toClient, sources) : toClient
+  let body = rag === true ? prependEvent(toClient, { handson_sources: sources }) : toClient
+  if (webInfo) body = prependEvent(body, { handson_web: webInfo })
   body = appendStatsEvent(body, { model: analyticsModel, startedAt })
   return new Response(body, { headers })
 }
 
 // ---------------------------------------------------------------------------
 
-// llama.cpp のSSEをそのまま流す方針は維持したまま、ストリーム先頭に参照資料を
-// 1件のdata行として差し込む。既存のクライアント側パーサ(app/page.tsx)は
+// llama.cpp のSSEをそのまま流す方針は維持したまま、ストリーム先頭に参照資料(RAG)や
+// Web検索の実施内容を1件のdata行として差し込む。既存のクライアント側パーサ(app/page.tsx)は
 // `data: ` で始まりJSONとして解析でき、`error`も`choices[0].delta.content`も
 // 存在しないイベントとして無視できる形なので、クライアント側の変更なしに
 // 混ぜても既存動作を壊さない。
-function prependSourcesEvent(stream: ReadableStream<Uint8Array>, sources: SourceRef[]): ReadableStream<Uint8Array> {
+function prependEvent(stream: ReadableStream<Uint8Array>, event: Record<string, unknown>): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
   return stream.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
       start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ handson_sources: sources })}\n\n`))
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
       },
     })
   )
