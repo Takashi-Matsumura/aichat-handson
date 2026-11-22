@@ -53,7 +53,8 @@ export function parseStreamLine(line: string): ChatStreamPayload | null {
   }
 }
 
-const THINK_OPEN = /^<think>\n?/
+// サーバーが先頭に足す <think> に加えて、モデル自身がもう一度 <think> を書いた場合もまとめて取り除く
+const THINK_OPEN = /^(?:\s*<think>\n?)+/
 const THINK_CLOSE = '</think>'
 
 // ストリームで届いた断片を回答に追記する。推論モードでは </think> が届くまでを思考過程として

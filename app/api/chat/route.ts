@@ -12,14 +12,7 @@ import { isWebSearchConfigured } from '@/lib/web/config'
 import { LLAMA_MODEL, LLAMA_URLS, NO_BUILTIN_REASONING } from '@/lib/llama/config'
 import { MAX_MESSAGES, MAX_TOTAL_CHARS, parseMessages } from '@/lib/chat/limits'
 import { readJsonObject } from '@/lib/http/json'
-import { rewriteReasoningStream } from '@/lib/llm/reasoning'
-
-// 推論モード(thinking)では、モデル内蔵の思考(reasoning_content)を有効にし、
-// rewriteReasoningStream で content 先頭の <think>…</think> に変換して画面に表示する。
-// 以前はプロンプトで <think> タグを書かせていたが、Gemma 4 は内蔵の思考を優先して
-// タグを書かないことが多く、思考が画面に出なかった。推論モードOFFでは内蔵の思考を
-// 無効にする(有効のままだと、画面に出ない思考に毎回数十秒〜数分かかる)。
-const WITH_BUILTIN_REASONING = { chat_template_kwargs: { enable_thinking: true } } as const
+import { THINKING_SYSTEM_PROMPT, prependThinkPrefill, withThinkPrefill } from '@/lib/llm/think'
 
 // llama.cpp へのリクエストで送るモデル名(LLAMA_MODEL)は環境変数1つの共通値だが、
 // 利用状況分析・推定コスト算出のためにはモデル1/2を区別した実際のモデル名が要る。
@@ -105,14 +98,18 @@ export async function POST(request: NextRequest) {
   // systemメッセージは必ず1個に連結する。Gemmaのチャットテンプレートにはsystemロールが
   // 無く、llama.cpp側で先頭userメッセージへ畳み込まれる。system を複数個並べると
   // テンプレート実装によっては2個目以降が無視される等、環境依存の事故になりうるため。
+  // 順序は「振る舞いの指示(思考プロセス) → データ(検索した資料・検索結果)」。
   // 検索結果が0件のときはcontextを足さない。「資料はありませんでした」と書くと
   // モデルがそれに引きずられて回答自体を拒否しがちになるため、素のLLMとして答えさせる。
   const systemParts: string[] = []
+  if (thinking) systemParts.push(THINKING_SYSTEM_PROMPT)
   if (ragContext) systemParts.push(ragContext)
   if (webContext) systemParts.push(webContext)
-  const allMessages = systemParts.length > 0
+  const baseMessages = systemParts.length > 0
     ? [{ role: 'system', content: systemParts.join('\n\n---\n\n') }, ...messages]
     : messages
+  // 推論モードでは思考を日本語の <think> から必ず書き始めさせる(lib/llm/think.ts)
+  const allMessages = thinking ? withThinkPrefill(baseMessages) : baseMessages
   let upstream: Response
   try {
     upstream = await fetch(`${LLAMA_URL}/v1/chat/completions`, {
@@ -124,7 +121,8 @@ export async function POST(request: NextRequest) {
         stream: true,
         stream_options: { include_usage: true },
         max_tokens: MAX_TOKENS,
-        ...(thinking ? WITH_BUILTIN_REASONING : NO_BUILTIN_REASONING),
+        // 内蔵の思考は英語で書かれるため、推論モードでも常に無効にする(lib/llm/think.ts)
+        ...NO_BUILTIN_REASONING,
       }),
     })
   } catch {
@@ -146,7 +144,7 @@ export async function POST(request: NextRequest) {
   // 利用状況分析のため、クライアントへ流すストリームとは別にもう1本複製(tee)して
   // 応答全文とトークン使用量を回収する。tee は同期的な複製で消費順に影響しないため、
   // クライアント側のストリーミング体感は変わらない。
-  const upstreamBody = thinking ? rewriteReasoningStream(upstream.body!) : upstream.body!
+  const upstreamBody = thinking ? prependThinkPrefill(upstream.body!) : upstream.body!
   const [toClient, toSniff] = upstreamBody.tee()
   const startedAt = Date.now()
   const analyticsModel = ANALYTICS_MODEL_NAMES[n] ?? LLAMA_MODEL
