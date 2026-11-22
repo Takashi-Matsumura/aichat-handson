@@ -10,6 +10,7 @@ import {
 } from "./classification-schema";
 import type { ClassificationResult } from "./store";
 import { parseJsonLoose } from "@/lib/llm/json";
+import { NO_BUILTIN_REASONING } from "@/lib/llama/config";
 
 const MAX_ATTEMPTS = 3;
 // 分類はJSON1個を返すだけの軽いタスクなので、reasoning_content が暴走しても
@@ -75,6 +76,7 @@ async function requestClassificationJson(
         stream: false,
         response_format: { type: 'json_schema', json_schema: CLASSIFICATION_JSON_SCHEMA },
         max_tokens: MAX_TOKENS,
+        ...NO_BUILTIN_REASONING,
       }),
     })
   } catch {
@@ -87,7 +89,7 @@ async function requestClassificationJson(
     res = await fetch(`${llamaUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: false, max_tokens: MAX_TOKENS }),
+      body: JSON.stringify({ model, messages, stream: false, max_tokens: MAX_TOKENS, ...NO_BUILTIN_REASONING }),
     })
     if (!res.ok) {
       throw new Error(`分類リクエストが失敗しました (status ${res.status})`)

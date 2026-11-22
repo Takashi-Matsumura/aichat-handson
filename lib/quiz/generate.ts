@@ -11,7 +11,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { HANDSON_PAGES } from '@/lib/handson/pages'
-import { LLAMA_MODEL, LLAMA_URLS } from '@/lib/llama/config'
+import { LLAMA_MODEL, LLAMA_URLS, NO_BUILTIN_REASONING } from '@/lib/llama/config'
 import { createArrayItemExtractor } from '@/lib/llm/json'
 import { readChatContentStream } from '@/lib/llm/stream'
 import {
@@ -147,6 +147,7 @@ async function streamQuizJson(
     max_tokens: MAX_TOKENS,
     temperature: TEMPERATURE,
     seed: Math.floor(Math.random() * 2 ** 31),
+    ...NO_BUILTIN_REASONING,
   }
   const post = async (body: object) => {
     try {
