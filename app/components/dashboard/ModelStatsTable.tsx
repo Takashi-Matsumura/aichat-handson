@@ -5,7 +5,8 @@ export function ModelStatsTable({ models }: { models: ModelStat[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      {/* スマホ幅では見出しや値を折り返さず（「利用件数」が縦1文字ずつになるのを防ぐ）、表全体を横スクロールで見せる */}
+      <table className="w-full whitespace-nowrap text-left text-sm">
         <thead>
           <tr className="border-b border-black/10 text-xs text-foreground/50 dark:border-white/15">
             <th className="py-2 pr-4">プロバイダー</th>
