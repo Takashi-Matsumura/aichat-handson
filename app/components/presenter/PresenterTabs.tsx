@@ -27,14 +27,14 @@ export function PresenterTabs({ tab, onChange }: { tab: PresenterTab; onChange: 
         <p className="text-sm text-gray-500 dark:text-zinc-400">管理者画面</p>
       </div>
 
-      {/* 表示切り替えタブ */}
-      <div className="aqua-segment w-full flex items-center gap-1 rounded-full p-1">
+      {/* 表示切り替えタブ。スマホ幅では文字を小さく・余白を詰め、ラベルが2行に折り返さないようにする */}
+      <div className="aqua-segment w-full flex items-center gap-0 sm:gap-1 rounded-full p-1">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`aqua-segment-item flex-1 rounded-full px-3 py-1.5 text-sm font-medium ${tab === id ? 'aqua aqua-blue' : ''}`}
+            className={`aqua-segment-item flex-auto sm:flex-1 whitespace-nowrap rounded-full px-1.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium ${tab === id ? 'aqua aqua-blue' : ''}`}
           >
             {label}
           </button>

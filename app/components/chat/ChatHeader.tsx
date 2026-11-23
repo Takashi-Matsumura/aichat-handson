@@ -29,8 +29,9 @@ function shortModelName(info: ModelInfo, n: 1 | 2): string {
 }
 
 export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen, panelMounted, onSwitchModel, onTogglePanel }: Props) {
+  // スマホ幅では左右を中身の幅だけにして中央のモデル切替に幅を回す（左右を等幅にすると中央が押し込まれてモデル名が折り返す）
   return (
-    <header className="flex-none bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 px-4 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+    <header className="flex-none bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700 px-3 sm:px-4 py-3 grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-2">
       <div className="flex items-center gap-2 justify-self-start">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ocean-700 flex-none">
           <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
@@ -38,7 +39,8 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
           <circle cx="15.5" cy="10" r="1" fill="currentColor" stroke="none" />
           <circle cx="12" cy="11" r="1" fill="currentColor" stroke="none" />
         </svg>
-        <h1 className="text-base font-semibold text-gray-800 dark:text-zinc-100">
+        {/* スマホ幅ではモデル切替と並ぶと窮屈で折り返すため、文字は隠してアイコンだけにする（読み上げ用には残す） */}
+        <h1 className="sr-only sm:not-sr-only text-base font-semibold text-gray-800 dark:text-zinc-100">
           AI チャット
         </h1>
         <span className="hidden sm:block text-gray-300 dark:text-zinc-600 select-none">|</span>
@@ -67,7 +69,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
                   ? 'ハンズオンページに応じて自動切替'
                   : (modelInfos[n].model ?? `ポート ${n === 1 ? 8080 : 8081}`)
             }
-            className={`aqua-segment-item flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+            className={`aqua-segment-item flex items-center gap-1.5 whitespace-nowrap px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
               unavailable
                 ? 'cursor-not-allowed opacity-40'
                 : selectedModel === n
@@ -88,13 +90,13 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
         })}
       </div>
 
-      <div className="flex items-center gap-2 justify-self-end">
+      <div className="flex items-center gap-1 sm:gap-2 justify-self-end">
         {/* 確認テスト（ハンズオン後の理解度チェック）へのリンク */}
         <Link
           href="/quiz"
           title="確認テスト"
           aria-label="確認テスト"
-          className="aqua w-9 h-9 flex items-center justify-center rounded-full"
+          className="aqua w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="8" y="2" width="8" height="4" rx="1" />
@@ -107,7 +109,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
           href="/analytics"
           title="AI利用状況ダッシュボード"
           aria-label="AI利用状況ダッシュボード"
-          className="aqua w-9 h-9 flex items-center justify-center rounded-full"
+          className="aqua w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="20" x2="18" y2="10" />
@@ -120,7 +122,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
             onClick={onTogglePanel}
             title={panelOpen ? 'テキストを閉じる' : 'テキストを開く'}
             aria-label={panelOpen ? 'テキストを閉じる' : 'テキストを開く'}
-            className={`aqua w-9 h-9 flex items-center justify-center rounded-full ${panelOpen ? 'aqua-blue' : ''}`}
+            className={`aqua w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full ${panelOpen ? 'aqua-blue' : ''}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
