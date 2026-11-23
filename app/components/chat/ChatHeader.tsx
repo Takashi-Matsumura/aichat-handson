@@ -47,7 +47,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
         </p>
       </div>
       {/* モデル選択（パネルを閉じているときは手動切替可、開いているときはページに応じて自動切替） */}
-      <div className="flex items-center gap-1 rounded-xl border border-gray-200 dark:border-zinc-600 p-0.5 justify-self-center">
+      <div className="aqua-segment flex items-center gap-0.5 rounded-full p-0.5 justify-self-center">
         {([1, 2] as const).map((n) => {
           const locked = n === 1 && !model1Enabled
           const offline = modelInfos[n].checked && !modelInfos[n].online
@@ -67,14 +67,14 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
                   ? 'ハンズオンページに応じて自動切替'
                   : (modelInfos[n].model ?? `ポート ${n === 1 ? 8080 : 8081}`)
             }
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+            className={`aqua-segment-item flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
               unavailable
-                ? 'text-gray-300 dark:text-zinc-600 cursor-not-allowed opacity-60'
+                ? 'cursor-not-allowed opacity-40'
                 : selectedModel === n
-                  ? 'bg-ocean-700 text-white'
+                  ? 'aqua aqua-blue'
                   : panelOpen
-                    ? 'text-gray-500 dark:text-zinc-400 cursor-default'
-                    : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                    ? 'cursor-default'
+                    : ''
             }`}
           >
             <span
@@ -94,7 +94,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
           href="/quiz"
           title="確認テスト"
           aria-label="確認テスト"
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+          className="aqua w-9 h-9 flex items-center justify-center rounded-full"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="8" y="2" width="8" height="4" rx="1" />
@@ -107,7 +107,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
           href="/analytics"
           title="AI利用状況ダッシュボード"
           aria-label="AI利用状況ダッシュボード"
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+          className="aqua w-9 h-9 flex items-center justify-center rounded-full"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="20" x2="18" y2="10" />
@@ -120,11 +120,7 @@ export function ChatHeader({ modelInfos, selectedModel, model1Enabled, panelOpen
             onClick={onTogglePanel}
             title={panelOpen ? 'テキストを閉じる' : 'テキストを開く'}
             aria-label={panelOpen ? 'テキストを閉じる' : 'テキストを開く'}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
-              panelOpen
-                ? 'border-ocean-400 bg-ocean-50 text-ocean-700 dark:border-ocean-500 dark:bg-ocean-900/30 dark:text-ocean-400'
-                : 'border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-            }`}
+            className={`aqua w-9 h-9 flex items-center justify-center rounded-full ${panelOpen ? 'aqua-blue' : ''}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />

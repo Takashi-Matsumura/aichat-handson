@@ -35,11 +35,7 @@ export function AccessPanel({ access }: { access: AccessInfo }) {
           type="button"
           onClick={copyUrl}
           title="URLをコピー"
-          className={`flex-none flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-            copied
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-ocean-100 text-ocean-700 hover:bg-ocean-200 dark:bg-ocean-900/30 dark:text-ocean-400 dark:hover:bg-ocean-900/50'
-          }`}
+          className={`aqua flex-none flex items-center justify-center w-8 h-8 rounded-full ${copied ? 'aqua-green' : ''}`}
         >
           {copied ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

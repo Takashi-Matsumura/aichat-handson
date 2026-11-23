@@ -77,18 +77,14 @@ export default function PromptBroadcastModal({ isOpen, title, body, onClose, onU
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            className="aqua rounded-full px-4 py-1.5 text-sm font-medium"
           >
             閉じる
           </button>
           <button
             type="button"
             onClick={copyBody}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              copied
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-ocean-100 text-ocean-700 hover:bg-ocean-200 dark:bg-ocean-900/30 dark:text-ocean-400 dark:hover:bg-ocean-900/50'
-            }`}
+            className={`aqua flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium ${copied ? 'aqua-green' : ''}`}
           >
             {copied ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -105,7 +101,7 @@ export default function PromptBroadcastModal({ isOpen, title, body, onClose, onU
           <button
             type="button"
             onClick={() => { onUsePrompt(body); onClose() }}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium bg-ocean-700 text-white hover:bg-ocean-800 transition-colors"
+            className="aqua aqua-blue rounded-full px-4 py-1.5 text-sm font-medium"
           >
             入力欄に入れる
           </button>

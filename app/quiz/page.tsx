@@ -241,7 +241,7 @@ function PrimaryButton({ onClick, children }: { onClick: () => void; children: R
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl bg-ocean-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-ocean-800 transition-colors"
+      className="aqua aqua-blue rounded-full px-6 py-2.5 text-sm font-semibold"
     >
       {children}
     </button>
@@ -314,8 +314,8 @@ function QuestionCard({
           {item.pageTitle}　{item.chapter}
         </span>
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-        <div className="h-full bg-ocean-500 transition-all" style={{ width: `${((index + (answered ? 1 : 0)) / total) * 100}%` }} />
+      <div className="aqua-track h-2.5 w-full overflow-hidden rounded-full">
+        <div className="aqua-bar h-full rounded-full transition-all" style={{ width: `${((index + (answered ? 1 : 0)) / total) * 100}%` }} />
       </div>
       <p className="text-base font-medium leading-relaxed whitespace-pre-wrap">{item.question}</p>
 

@@ -71,10 +71,10 @@ export function ChatComposer({
         return (
           <div className="mb-2 flex items-center gap-2 text-xs text-gray-400 dark:text-zinc-500">
             <span className="flex-none">コンテキスト</span>
-            <div className="flex-1 h-1.5 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+            <div className="aqua-track flex-1 h-2.5 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-ocean-300 dark:bg-ocean-500'
+                className={`aqua-bar h-full rounded-full transition-all duration-300 ${
+                  pct > 90 ? 'aqua-red' : pct > 70 ? 'aqua-amber' : ''
                 }`}
                 style={{ width: `${pct}%` }}
               />
@@ -102,7 +102,7 @@ export function ChatComposer({
             type="button"
             onClick={onClearChat}
             title="新規チャット"
-            className="flex-none w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            className="aqua flex-none w-9 h-9 flex items-center justify-center rounded-full"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
@@ -126,13 +126,7 @@ export function ChatComposer({
               : 'RAG OFF（クリックでON）'
           }
           aria-pressed={ragMode}
-          className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
-            !ragAvailable
-              ? 'border-gray-100 dark:border-zinc-700 text-gray-300 dark:text-zinc-700 cursor-not-allowed'
-              : ragMode
-              ? 'border-emerald-400 bg-emerald-50 text-emerald-500 dark:border-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400'
-              : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-          }`}
+          className={`aqua flex-none w-9 h-9 flex items-center justify-center rounded-full ${ragAvailable && ragMode ? 'aqua-green' : ''}`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -155,13 +149,7 @@ export function ChatComposer({
           }
           aria-label="Web検索"
           aria-pressed={webMode}
-          className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
-            !webAvailable
-              ? 'border-gray-100 dark:border-zinc-700 text-gray-300 dark:text-zinc-700 cursor-not-allowed'
-              : webMode
-              ? 'border-sky-400 bg-sky-50 text-sky-500 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-400'
-              : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-          }`}
+          className={`aqua flex-none w-9 h-9 flex items-center justify-center rounded-full ${webAvailable && webMode ? 'aqua-sky' : ''}`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
@@ -176,11 +164,7 @@ export function ChatComposer({
             onClick={onToggleThinking}
             title={thinking ? '推論モード ON（クリックでOFF）' : '推論モード OFF（クリックでON）'}
             aria-pressed={thinking}
-            className={`flex-none w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
-              thinking
-                ? 'border-amber-400 bg-amber-50 text-amber-500 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
-                : 'border-gray-200 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-            }`}
+            className={`aqua flex-none w-9 h-9 flex items-center justify-center rounded-full ${thinking ? 'aqua-amber' : ''}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
@@ -206,7 +190,7 @@ export function ChatComposer({
             onClick={onStop}
             aria-label="生成を停止"
             title="生成を停止"
-            className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors"
+            className="aqua aqua-red flex-none w-9 h-9 flex items-center justify-center rounded-full"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <rect x="5" y="5" width="14" height="14" rx="2" />
@@ -218,7 +202,7 @@ export function ChatComposer({
             disabled={!input.trim()}
             aria-label="送信"
             title="送信"
-            className="flex-none w-9 h-9 flex items-center justify-center rounded-xl bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="aqua aqua-blue flex-none w-9 h-9 flex items-center justify-center rounded-full"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />

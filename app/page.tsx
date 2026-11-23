@@ -576,7 +576,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={openBroadcastModal}
-                className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium bg-ocean-100 text-ocean-700 hover:bg-ocean-200 dark:bg-ocean-900/30 dark:text-ocean-400 dark:hover:bg-ocean-900/50 transition-colors shadow-sm"
+                className="aqua aqua-blue flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
                   <path d="M3 11l18-5v12L3 14v-3z" />

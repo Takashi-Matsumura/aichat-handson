@@ -47,7 +47,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
             type="button"
             onClick={handleReindex}
             disabled={reindexing}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="aqua aqua-green flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={reindexing ? 'animate-spin' : ''}>
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -107,7 +107,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
           <button
             type="button"
             onClick={() => setAddingNew((prev) => !prev)}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ocean-700 hover:bg-ocean-50 dark:text-ocean-400 dark:hover:bg-ocean-900/20 transition-colors"
+            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -157,7 +157,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
               <button
                 type="button"
                 onClick={closeNewSourceForm}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                className="aqua rounded-full px-4 py-1.5 text-xs font-medium"
               >
                 キャンセル
               </button>
@@ -165,7 +165,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                 type="button"
                 onClick={handleCreateSource}
                 disabled={!newFileName.trim() || creatingNew}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="aqua aqua-blue rounded-full px-4 py-1.5 text-xs font-medium"
               >
                 {creatingNew ? '作成中...' : '作成して保存'}
               </button>
@@ -217,7 +217,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                         type="button"
                         onClick={() => handleDeleteSource(source.relPath)}
                         disabled={isDeleting}
-                        className="rounded-lg px-2 py-1 text-[11px] font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="aqua aqua-red rounded-full px-3 py-1 text-[11px] font-medium"
                       >
                         {isDeleting ? '削除中...' : '削除する'}
                       </button>
@@ -225,7 +225,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                         type="button"
                         onClick={() => setDeleteConfirmPath(null)}
                         disabled={isDeleting}
-                        className="rounded-lg px-2 py-1 text-[11px] font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                        className="aqua rounded-full px-3 py-1 text-[11px] font-medium"
                       >
                         キャンセル
                       </button>
@@ -235,7 +235,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                       type="button"
                       onClick={() => setDeleteConfirmPath(source.relPath)}
                       title="このソースを削除"
-                      className="flex-none w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-zinc-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      className="aqua flex-none w-7 h-7 flex items-center justify-center rounded-full hover:text-red-600"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6" />
@@ -269,7 +269,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                         <button
                           type="button"
                           onClick={() => discardDraft(source.relPath)}
-                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                          className="aqua rounded-full px-4 py-1.5 text-xs font-medium"
                         >
                           元に戻す
                         </button>
@@ -278,7 +278,7 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                         type="button"
                         onClick={() => handleSaveSource(source.relPath)}
                         disabled={!isDirty || isSaving}
-                        className="rounded-lg px-3 py-1.5 text-xs font-medium bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="aqua aqua-blue rounded-full px-4 py-1.5 text-xs font-medium"
                       >
                         {isSaving ? '保存中...' : '保存'}
                       </button>

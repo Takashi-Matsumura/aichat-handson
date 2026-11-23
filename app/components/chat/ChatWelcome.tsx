@@ -62,7 +62,7 @@ export function SuggestedPrompts({ onSelect }: { onSelect: (prompt: string) => v
           key={s.label}
           type="button"
           onClick={() => onSelect(s.prompt)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-gray-600 dark:text-zinc-300 hover:border-ocean-300 hover:text-ocean-700 dark:hover:border-ocean-600 dark:hover:text-ocean-400 transition-colors shadow-sm"
+          className="aqua flex items-center gap-1.5 px-4 py-2 rounded-full text-sm"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
             {SUGGESTION_ICON_PATHS[s.icon]}

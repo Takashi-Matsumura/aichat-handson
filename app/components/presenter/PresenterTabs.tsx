@@ -28,17 +28,13 @@ export function PresenterTabs({ tab, onChange }: { tab: PresenterTab; onChange: 
       </div>
 
       {/* 表示切り替えタブ */}
-      <div className="w-full flex items-center gap-1 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-1 shadow-sm">
+      <div className="aqua-segment w-full flex items-center gap-1 rounded-full p-1">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              tab === id
-                ? 'bg-ocean-700 text-white'
-                : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
-            }`}
+            className={`aqua-segment-item flex-1 rounded-full px-3 py-1.5 text-sm font-medium ${tab === id ? 'aqua aqua-blue' : ''}`}
           >
             {label}
           </button>
