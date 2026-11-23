@@ -15,11 +15,11 @@ export const HOWTO_VIDEOS: HowtoVideoSet[] = [
     cardSub: '見たいところから再生できます',
     chapters: [
       { id: 'ch1', title: '画面の見かた', summary: 'どこに何があるか', duration: 63.7 },
-      { id: 'ch2', title: '質問してみよう', summary: '例文・改行・送信・停止', duration: 67.0 },
-      { id: 'ch3', title: '答えを確かめる', summary: '再生成・見比べ・トークン', duration: 57.3 },
-      { id: 'ch4', title: 'テキストを見ながら進める', summary: 'テキストの開き方と［入力］ボタン', duration: 72.8 },
-      { id: 'ch5', title: '推論モード', summary: 'AIに考えてから答えてもらう', duration: 48.4 },
-      { id: 'ch6', title: '新しく始める・確認テスト', summary: '新規チャットと4択テスト', duration: 52.4 },
+      { id: 'ch2', title: '質問してみよう', summary: '例文・改行・送信・停止', duration: 62.9 },
+      { id: 'ch3', title: '答えを確かめる', summary: '再生成・見比べ・トークン', duration: 51.6 },
+      { id: 'ch4', title: 'テキストを見ながら進める', summary: 'テキストの開き方と［入力］ボタン', duration: 72.4 },
+      { id: 'ch5', title: '推論モード', summary: 'AIに考えてから答えてもらう', duration: 49.3 },
+      { id: 'ch6', title: '新しく始める・確認テスト', summary: '新規チャットと4択テスト', duration: 52.0 },
     ],
   },
   {
@@ -28,8 +28,8 @@ export const HOWTO_VIDEOS: HowtoVideoSet[] = [
     card: '応用編：Web検索と社内資料',
     cardSub: '調べてから答えてもらう使い方',
     chapters: [
-      { id: 'web', title: 'Web検索', summary: 'インターネットで調べてから答えてもらう', duration: 102.7 },
-      { id: 'rag', title: '社内資料を検索（RAG）', summary: '登録された資料をもとに答えてもらう', duration: 88.7 },
+      { id: 'web', title: 'Web検索', summary: 'インターネットで調べてから答えてもらう', duration: 101.2 },
+      { id: 'rag', title: '社内資料を検索（RAG）', summary: '登録された資料をもとに答えてもらう', duration: 88.0 },
     ],
   },
 ]
