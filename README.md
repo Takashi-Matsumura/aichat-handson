@@ -297,6 +297,29 @@ RAG＝ベクトルDBと思われがちですが、RAGの定義は「生成前に
   必要な質問だけは、文書単位の方が正しく答えた）。1文書が長い実際の社内資料や、大きなモデルでは
   結果が変わりうるので、資料やモデルを替えたら測り直すこと
 
+#### 方式の比較を測り直す
+
+上の比較は `scripts/rag-eval/` のスクリプトで再実行できる。`knowledge/` にサンプル資料を置き
+（`cp samples/knowledge/0*.md knowledge/`）、埋め込みサーバーとチャット用の `llama-server` を起動してから流す。
+アプリを通さずにモデルのサーバーへ直接送るので、利用統計には記録されない。
+
+```bash
+npm run eval:rag                                              # 全方式 × 両モデル × 各3回（十数分〜）
+RAG_EVAL_METHODS=chunk,doc RAG_EVAL_MODELS=2 npm run eval:rag # 方式とモデルを絞る
+RAG_EVAL_DOC_CHARS=8000 RAG_EVAL_METHODS=doc npm run eval:rag # 文書単位のRAGの上限を変えて試す
+```
+
+| 環境変数 | 内容 | 既定値 |
+|---|---|---|
+| `RAG_EVAL_METHODS` | 比べる方式（`old`：以前の回答指示 / `chunk`：チャンク検索 / `doc`：文書単位 / `query`：検索文の生成） | すべて |
+| `RAG_EVAL_MODELS` | 使うモデル（`1` / `2`） | `1,2` |
+| `RAG_EVAL_RUNS` | 1問あたりの回数 | `3` |
+| `RAG_EVAL_DOC_CHARS` / `RAG_EVAL_QUERY_COUNT` | `doc` で渡す文字数の上限 / `query` で作る検索文の数 | `4000` / `3` |
+
+結果は `scripts/rag-eval/out/` に書き出す（`summary.md`：方式×モデルの正答率と待ち時間の表、`answers.log`：全回答、
+`results.json`：生データ）。質問と正解は `scripts/rag-eval/questions.ts` にあり、正誤は回答に正解の表現が
+含まれるかで自動判定する。サンプル資料を書き換えたら、ここの正解も合わせて直すこと。
+
 ベクトルDBが担うのは「大量のベクトルから高速に近傍を探す」ためのインデックス構造で、
 研修デモの規模ではその問題自体が発生しないため、あえて導入していません。
 

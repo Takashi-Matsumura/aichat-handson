@@ -53,3 +53,6 @@ next-env.d.ts
 
 # セキュリティレビューの記録（攻撃経路を含むため public リポジトリにはコミットしない）
 /security-review-*.md
+
+# RAGの方式比較(npm run eval:rag)の結果
+/scripts/rag-eval/out/
