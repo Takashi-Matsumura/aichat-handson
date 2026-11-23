@@ -64,9 +64,13 @@ const FADE = 0.3;
 const edgeFade = (d) =>
   `fade=t=in:st=0:d=${FADE}:color=white,fade=t=out:st=${(d - FADE).toFixed(3)}:d=${FADE}:color=white`;
 
-/** 目印の時刻を使って、区間ごとに時間を伸び縮みさせる関数を作る。 */
+/**
+ * 目印の時刻を使って、区間ごとに時間を伸び縮みさせる関数を作る。
+ * from / to は目印の名前か素材の秒。from と to が同じ時刻なら、そこで画面を as 秒止める（一時停止）。
+ */
 export function retimer(marks, duration, retime = []) {
   const at = (name) => {
+    if (typeof name === "number") return name;
     if (name === "start") return 0;
     if (name === "end") return duration;
     const m = marks.find((x) => x.name === name);

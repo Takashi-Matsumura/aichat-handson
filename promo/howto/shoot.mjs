@@ -43,7 +43,7 @@ const SCENES = {
     await unspot(page);
     rec.mark("end-card");
     await pause(page, 2000);
-    await finish("ch1", browser, rec);
+    await finish("ch1", browser, rec, page);
   },
 
   /** 2. 質問してみよう（例文・自分で入力・改行・送信・停止）。 */
@@ -91,7 +91,7 @@ const SCENES = {
     await unspot(page);
     await review(page, rec);
     await pause(page, 1500);
-    await finish("ch2", browser, rec);
+    await finish("ch2", browser, rec, page);
   },
 
   /** 3. 答えを確かめる（再生成・バージョン・トークン表示・コンテキスト）。 */
@@ -151,7 +151,7 @@ const SCENES = {
     await unspot(page);
     rec.mark("done");
     await pause(page, 1000);
-    await finish("ch3", browser, rec);
+    await finish("ch3", browser, rec, page);
   },
 
   /** 4. テキストを見ながら進める（パネル・タブ・文字サイズ・入力ボタン・全画面）。 */
@@ -220,7 +220,7 @@ const SCENES = {
     await moveAndClick(page, page.getByRole("button", { name: "テキストを閉じる" }));
     rec.mark("closed");
     await pause(page, 2500);
-    await finish("ch4", browser, rec);
+    await finish("ch4", browser, rec, page);
   },
 
   /** 5. 推論モード（モデル 1 のときだけ使える）。 */
@@ -258,12 +258,76 @@ const SCENES = {
     await moveAndClick(page, toggle);
     rec.mark("off");
     await pause(page, 2000);
-    await finish("ch5", browser, rec);
+    await finish("ch5", browser, rec, page);
   },
 
-  /** 6. 新しく始める・確認テスト。 */
+  /** 6. Web検索（SearXNG でインターネットを調べてから答える）。 */
   async ch6() {
     const { browser, page, rec } = await begin("ch6");
+    await pause(page, 4000);
+    const web = page.getByRole("button", { name: "Web検索" });
+    await spotlight(page, web);
+    rec.mark("toggle-point");
+    await pause(page, 3500);
+    await unspot(page);
+    await moveAndClick(page, web);
+    rec.mark("on");
+    await pause(page, 1200);
+    await spotlight(page, page.getByText(/Web検索ON：/), { hover: false });
+    rec.mark("notice");
+    await pause(page, 6000);
+    await unspot(page);
+    await typeInto(page, "今週のAIに関するニュースを3つ、1行ずつ教えてください。");
+    rec.mark("typed");
+    await pause(page, 1500);
+    await moveAndClick(page, page.getByRole("button", { name: "送信" }));
+    rec.mark("sent");
+    // 検索キーワードを作って SearXNG で調べている間は「Webを検索しています…」が出る。
+    const searching = page.getByText("Webを検索しています…");
+    await searching.waitFor({ timeout: 30_000 }).catch(() => {});
+    rec.mark("searching");
+    await searching.waitFor({ state: "detached", timeout: 120_000 }).catch(() => {});
+    rec.mark("searched");
+    const stop = page.getByRole("button", { name: "生成を停止" });
+    await page.waitForFunction(() => document.querySelectorAll(".animate-bounce").length === 0, null, {
+      timeout: 300_000,
+      polling: 200,
+    });
+    rec.mark("streaming");
+    await stop.waitFor({ state: "detached", timeout: 300_000 }).catch(() => {});
+    rec.mark("answered");
+    await pause(page, 1000);
+    await review(page, rec);
+
+    // 答えの下の「参照したWebページ」を開いて、検索キーワードと出典を見せる。
+    const sources = page.getByRole("button", { name: /参照したWebページ/ }).last();
+    await spotlight(page, sources);
+    rec.mark("sources-point");
+    await pause(page, 3500);
+    await unspot(page);
+    await moveAndClick(page, sources);
+    await pause(page, 500);
+    await page
+      .locator("div.flex-1.overflow-y-auto")
+      .first()
+      .evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }));
+    rec.mark("sources");
+    await pause(page, 8000);
+    rec.mark("searxng");
+    await pause(page, 9000);
+    await spotlight(page, web);
+    rec.mark("off-point");
+    await pause(page, 1500);
+    await unspot(page);
+    await moveAndClick(page, web);
+    rec.mark("off");
+    await pause(page, 3000);
+    await finish("ch6", browser, rec, page);
+  },
+
+  /** 7. 新しく始める・確認テスト。 */
+  async ch7() {
+    const { browser, page, rec } = await begin("ch7");
     await pause(page, 1000);
     await typeInto(page, "こんにちは！ひとことで自己紹介してください。");
     await pause(page, 600);
@@ -303,7 +367,7 @@ const SCENES = {
     await page.evaluate(() => window.scrollBy({ top: 360, behavior: "smooth" }));
     await pause(page, 6500);
     rec.mark("done");
-    await finish("ch6", browser, rec);
+    await finish("ch7", browser, rec, page);
   },
 };
 

@@ -119,6 +119,7 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
   const [voiceId, setVoiceId] = useState(loadVoiceId)
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const listRef = useRef<HTMLOListElement>(null)
   const chapter = HOWTO_CHAPTERS[current]
   const voice = HOWTO_VOICES.find((v) => v.id === voiceId) ?? DEFAULT_HOWTO_VOICE
   useNarrationSync(videoRef, audioRef)
@@ -143,6 +144,19 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
   // チャプタを選んだら、頭から再生する（自動再生が止められている環境では、再生ボタンを押してもらう）。
   useEffect(() => {
     videoRef.current?.play().catch(() => {})
+  }, [current])
+
+  // 再生中のチャプタ(自動で次へ進んだときも)が、チャプタ一覧の見える範囲に入るよう一覧をスクロールする。
+  // scrollIntoView は外側(縦並びのときのダイアログ全体)まで動かしてしまうので、一覧だけを動かす。
+  useEffect(() => {
+    const list = listRef.current
+    const item = list?.children[current] as HTMLElement | undefined
+    if (!list || !item || list.scrollHeight <= list.clientHeight) return
+    const top = item.offsetTop - list.offsetTop
+    const bottom = top + item.offsetHeight
+    if (top < list.scrollTop) list.scrollTo({ top: top - 8, behavior: 'smooth' })
+    else if (bottom > list.scrollTop + list.clientHeight)
+      list.scrollTo({ top: bottom - list.clientHeight + 8, behavior: 'smooth' })
   }, [current])
 
   return (
@@ -192,8 +206,11 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
             {/* 選んだ声のナレーション。動画の操作に追従させる(useNarrationSync) */}
             <audio ref={audioRef} src={howtoNarration(chapter.id, voice.id)} preload="auto" />
           </div>
-          <div className="flex-none lg:w-72 flex flex-col lg:overflow-hidden">
-          <ol className="lg:flex-1 lg:overflow-y-auto p-2 space-y-1">
+          {/* 横並び(lg)のときは、ウィンドウの高さを動画に合わせる。チャプタ一覧は高さを決めないよう
+              絶対配置で動画の高さに収め、はみ出す分は一覧の中でスクロールする */}
+          <div className="flex-none lg:w-72 lg:relative">
+          <div className="flex flex-col lg:absolute lg:inset-0">
+          <ol ref={listRef} className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto p-2 space-y-1">
             {HOWTO_CHAPTERS.map((c, i) => (
               <li key={c.id}>
                 <button
@@ -234,6 +251,7 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
             </label>
             {/* ナレーションに使った音声合成ソフトのクレジット(各話者の利用規約で表記が必要) */}
             <span className="whitespace-nowrap text-[11px] text-gray-400 dark:text-zinc-500">{voice.credit}</span>
+          </div>
           </div>
           </div>
         </div>

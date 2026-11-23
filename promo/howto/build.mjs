@@ -7,9 +7,10 @@
  * 先に shoot.mjs で撮っておく。字幕だけを直すなら、撮り直さずにこれだけを流せばよい。
  * 仕上がりの秒数は lib/howto/chapters.ts の duration に手で写す（一覧に長さを出すため）。
  *
- * 字幕の大きい一言（text）を VOICEVOX で読み上げ、lib/howto/voices.json の声ごとに音声を
+ * 字幕の読み上げ文（say。無ければ大きい一言の text）を VOICEVOX で読み上げ、lib/howto/voices.json の声ごとに音声を
  * public/howto/<チャプタ>.<声>.m4a へ書き出す。受講者は再生画面で声を選べる（動画は映像と無音の
- * 音声トラックだけで、選んだ声の音声をアプリが動画に合わせて流す）。VOICEVOX を起動しておくこと。
+ * 音声トラックだけで、選んだ声の音声をアプリが動画に合わせて流す）。読み上げが字幕の表示時間に
+ * 収まらないときは、その字幕の間だけ画面を止めて尺を延ばす。VOICEVOX を起動しておくこと。
  *   VOICEVOX_URL=http://localhost:50021   VOICEVOX の場所
  *   HOWTO_NARRATION=0                      読み上げの音声を書き出さない
  */
@@ -60,6 +61,9 @@ const HOLD = 2.5;
 /** AI の応答待ち（1 文字目が出るまで）は縮める。 */
 const wait = (from = "sent", to = "streaming") => ({ from, to, as: 0.4 });
 
+// 字幕の say は読み上げる文。画面の帯（step・title・text）を見なくても分かるように、帯の内容を
+// 話し言葉でつないで書く（省くと text をそのまま読む）。記号やアルファベットは読み間違えやすいので、
+// say ではカタカナや言葉に開く（例: Shift + Enter → シフトキーを押しながらエンター）。
 const CHAPTERS = [
   {
     id: "ch1",
@@ -67,15 +71,24 @@ const CHAPTERS = [
     // 撮影時に dev サーバのコンパイル待ちで止まった区間があれば、ほかの部品と同じ間（約 4.6 秒）に縮める。
     retime: [{ from: "quiz", to: "stats", as: 4.6 }],
     captions: [
-      { at: 0, step: "チャプタ1", title: "AIチャットの使い方", text: "まずは、画面のどこに何があるかを確認しよう" },
-      { at: "input", step: "入力欄", title: "AIへの質問やお願いを書く場所", text: "ここに書いて、AIに送ります" },
-      { at: "examples", step: "例文", title: "何を聞けばいいか迷ったら", text: "押すと、入力欄に例文が入ります" },
-      { at: "model", step: "モデル", title: "使うAI（モデル）の切り替え", text: "研修では、講師の指示に合わせて選びます" },
-      { at: "text", step: "テキスト", title: "ハンズオンの教材", text: "テキストを開いて、読みながら試せます" },
-      { at: "quiz", step: "確認テスト", title: "学んだ内容のふりかえり", text: "AIが作る4択テストに挑戦できます" },
-      { at: "stats", step: "利用状況", title: "AI利用状況ダッシュボード", text: "みんながどんなふうにAIを使ったかを見られます" },
-      { at: "note", step: "大切なこと", title: "AIの回答は参考情報", text: "最後は、自分の目で確かめよう" },
-      { at: "howto", step: "使い方の動画", title: "この動画は、ここからいつでも見られます", text: "見たいチャプタを選んで再生できます" },
+      { at: 0, step: "チャプタ1", title: "AIチャットの使い方", text: "まずは、画面のどこに何があるかを確認しよう",
+        say: "チャプタ1、画面の見かたです。まずは、どこに何があるかを確認しましょう。" },
+      { at: "input", step: "入力欄", title: "AIへの質問やお願いを書く場所", text: "ここに書いて、AIに送ります",
+        say: "これが入力欄です。AIへの質問やお願いを、ここに書いて送ります。" },
+      { at: "examples", step: "例文", title: "何を聞けばいいか迷ったら", text: "押すと、入力欄に例文が入ります",
+        say: "何を聞けばいいか迷ったら、例文のボタンを押してみましょう。入力欄に例文が入ります。" },
+      { at: "model", step: "モデル", title: "使うAI（モデル）の切り替え", text: "研修では、講師の指示に合わせて選びます",
+        say: "ここで、使うAIのモデルを切り替えます。研修では、講師の指示に合わせて選んでください。" },
+      { at: "text", step: "テキスト", title: "ハンズオンの教材", text: "テキストを開いて、読みながら試せます",
+        say: "このボタンで、ハンズオンのテキストを開きます。テキストを読みながら、チャットで試せます。" },
+      { at: "quiz", step: "確認テスト", title: "学んだ内容のふりかえり", text: "AIが作る4択テストに挑戦できます",
+        say: "確認テストでは、学んだ内容を、AIが作る4択の問題でふりかえれます。" },
+      { at: "stats", step: "利用状況", title: "AI利用状況ダッシュボード", text: "みなさんがどんなふうにAIを使ったかを見られます",
+        say: "AI利用状況ダッシュボードでは、みなさんがどんなふうにAIを使ったかを見られます。" },
+      { at: "note", step: "大切なこと", title: "AIの回答は参考情報", text: "最後は、自分の目で確かめよう",
+        say: "AIの回答は、あくまで参考情報です。最後は、自分の目で確かめましょう。" },
+      { at: "howto", step: "使い方の動画", title: "この動画は、ここからいつでも見られます", text: "見たいチャプタを選んで再生できます",
+        say: "この使い方の動画は、ここからいつでも見られます。見たいチャプタを選んで再生してください。" },
     ],
   },
   {
@@ -83,13 +96,20 @@ const CHAPTERS = [
     thumb: "review",
     retime: [wait(), { from: "streaming", to: "answered", as: 6 }],
     captions: [
-      { at: 0, step: "チャプタ2", title: "質問してみよう", text: "例文を使う方法と、自分で書く方法があります" },
-      { at: "example", step: "例文", title: "例文のボタンを押すと", text: "入力欄に文章が入ります（まだ送られません）" },
-      { at: "own", step: "自分で書く", title: "例文を消して、聞きたいことをそのまま書く", text: "ふだんの言葉で大丈夫" },
-      { at: "newline", step: "改行", title: "Enter だけだと送信されてしまうので", text: "改行は Shift + Enter" },
-      { at: "send", step: "送信", title: "書き終わったら", text: "Enter キーか、送信ボタンで送ります" },
-      { at: "streaming", step: "停止", title: "答えは少しずつ表示されます", text: "途中で止めたいときは ■ ボタン" },
-      { at: "review", title: "答えが返ってきたら", text: "内容が正しいか、自分で確かめよう" },
+      { at: 0, step: "チャプタ2", title: "質問してみよう", text: "例文を使う方法と、自分で書く方法があります",
+        say: "チャプタ2、質問してみよう。質問のしかたには、例文を使う方法と、自分で書く方法があります。" },
+      { at: "example", step: "例文", title: "例文のボタンを押すと", text: "入力欄に文章が入ります（まだ送られません）",
+        say: "例文のボタンを押すと、入力欄に文章が入ります。この時点では、まだ送られません。" },
+      { at: "own", step: "自分で書く", title: "例文を消して、聞きたいことをそのまま書く", text: "ふだんの言葉で大丈夫",
+        say: "例文を消して、聞きたいことを自分で書いてみます。ふだんの言葉で大丈夫です。" },
+      { at: "newline", step: "改行", title: "Enter だけだと送信されてしまうので", text: "改行は Shift + Enter",
+        say: "エンターキーだけだと送信されてしまいます。改行したいときは、シフトキーを押しながらエンターです。" },
+      { at: "send", step: "送信", title: "書き終わったら", text: "Enter キーか、送信ボタンで送ります",
+        say: "書き終わったら、エンターキーか、送信ボタンで送ります。" },
+      { at: "streaming", step: "停止", title: "答えは少しずつ表示されます", text: "途中で止めたいときは ■ ボタン",
+        say: "答えは少しずつ表示されます。途中で止めたいときは、赤い停止ボタンを押します。" },
+      { at: "review", title: "答えが返ってきたら", text: "内容が正しいか、自分で確かめよう",
+        say: "答えが返ってきたら、内容が正しいか、自分で確かめましょう。" },
     ],
   },
   {
@@ -103,11 +123,16 @@ const CHAPTERS = [
       { from: "regen-streaming", to: "regen-answered", as: 5 },
     ],
     captions: [
-      { at: 0, step: "チャプタ3", title: "答えを確かめる", text: "答えの下にあるボタンを使ってみよう" },
-      { at: "regen-point", step: "再生成", title: "同じ質問で、答えを作り直す", text: "別の答え方を見たいときに" },
-      { at: "versions", step: "見比べる", title: "作り直した答えは、どれも残っています", text: "‹ 1/2 › で前後の答えを切り替え" },
-      { at: "tokens-point", step: "トークン", title: "AIは文章を細かく区切って読み書きしています", text: "区切り（トークン）ごとに色分けして表示" },
-      { at: "context", step: "コンテキスト", title: "AIが一度に覚えておける会話の量の目安", text: "いっぱいに近づいたら、新しいチャットへ" },
+      { at: 0, step: "チャプタ3", title: "答えを確かめる", text: "答えの下にあるボタンを使ってみよう",
+        say: "チャプタ3、答えを確かめる。答えの下にあるボタンを使ってみましょう。" },
+      { at: "regen-point", step: "再生成", title: "同じ質問で、答えを作り直す", text: "別の答え方を見たいときに",
+        say: "再生成のボタンを押すと、同じ質問で答えを作り直します。別の答え方を見たいときに使います。" },
+      { at: "versions", step: "見比べる", title: "作り直した答えは、どれも残っています", text: "‹ 1/2 › で前後の答えを切り替え",
+        say: "作り直す前の答えも残っています。矢印のボタンで前後の答えを切り替えて、見比べられます。" },
+      { at: "tokens-point", step: "トークン", title: "AIは文章を細かく区切って読み書きしています", text: "区切り（トークン）ごとに色分けして表示",
+        say: "AIは、文章をトークンという細かい区切りで読み書きしています。このボタンで、トークンごとに色分けして表示できます。" },
+      { at: "context", step: "コンテキスト", title: "AIが一度に覚えておける会話の量の目安", text: "いっぱいに近づいたら、新しいチャットへ",
+        say: "コンテキストは、AIが一度に覚えておける会話の量の目安です。いっぱいに近づいたら、新しいチャットを始めましょう。" },
     ],
   },
   {
@@ -115,14 +140,24 @@ const CHAPTERS = [
     thumb: "shown",
     retime: [wait(), { from: "streaming", to: "answered", as: 5 }],
     captions: [
-      { at: 0, step: "チャプタ4", title: "テキストを見ながら進める", text: "ハンズオンは、テキストと並べて進めます" },
-      { at: "opened", step: "テキスト", title: "右側にテキストが開きます", text: "左で試して、右で読む" },
-      { at: "tabs", step: "タブ", title: "上のタブで", text: "テキストを切り替えます" },
-      { at: "font", step: "文字の大きさ", title: "読みにくいときは", text: "A のボタンで文字を大きく・小さく" },
-      { at: "use-point", step: "入力", title: "テキストの例文の［入力］ボタンを押すと", text: "チャット欄に例文が入ります" },
-      { at: "sent", step: "送信", title: "そのまま送って", text: "AIの答えを、テキストと見比べよう" },
-      { at: "full-point", step: "全画面", title: "テキストをじっくり読みたいときは", text: "全画面で表示できます" },
-      { at: "closed", title: "もう一度ボタンを押すと", text: "テキストを閉じて、チャットを広く使えます" },
+      { at: 0, step: "チャプタ4", title: "テキストを見ながら進める", text: "ハンズオンは、テキストと並べて進めます",
+        say: "チャプタ4、テキストを見ながら進める。ハンズオンは、テキストと並べて進めます。" },
+      { at: "open-point", step: "テキストを開く", title: "このボタンを押すと", text: "テキストが開きます",
+        say: "このボタンを押して、テキストを開きます。" },
+      { at: "opened", step: "テキスト", title: "右側にテキストが開きます", text: "左で試して、右で読む",
+        say: "画面の右側にテキストが開きました。左のチャットで試して、右のテキストで読みながら進めます。" },
+      { at: "tabs", step: "タブ", title: "上のタブで", text: "テキストを切り替えます",
+        say: "上のタブで、読みたいテキストを切り替えます。" },
+      { at: "font", step: "文字の大きさ", title: "読みにくいときは", text: "A のボタンで文字を大きく・小さく",
+        say: "文字が読みにくいときは、エーのボタンで、文字を大きくしたり、小さくしたりできます。" },
+      { at: "use-point", step: "入力", title: "テキストの例文の［入力］ボタンを押すと", text: "チャット欄に例文が入ります",
+        say: "テキストの例文にある、入力ボタンを押すと、チャットの入力欄に例文が入ります。" },
+      { at: "sent", step: "送信", title: "そのまま送って", text: "AIの答えを、テキストと見比べよう",
+        say: "そのまま送って、AIの答えを、テキストと見比べてみましょう。" },
+      { at: "full-point", step: "全画面", title: "テキストをじっくり読みたいときは", text: "全画面で表示できます",
+        say: "テキストをじっくり読みたいときは、全画面で表示できます。" },
+      { at: "closed", title: "もう一度ボタンを押すと", text: "テキストを閉じて、チャットを広く使えます",
+        say: "使い終わったら、テキストを閉じると、チャットを広く使えます。" },
     ],
   },
   {
@@ -130,16 +165,54 @@ const CHAPTERS = [
     thumb: "proc-point",
     retime: [wait("sent", "thinking"), { from: "thinking", to: "answered", as: 6 }],
     captions: [
-      { at: 0, step: "チャプタ5", title: "推論モード", text: "AIに、よく考えてから答えてもらう" },
-      { at: "toggle-point", step: "推論モード", title: "電球のボタン（Gemma4 を選んでいるときだけ表示）", text: "押すと、推論モードがオンになります" },
-      { at: "typed", title: "順を追って考える問題を", text: "聞いてみます" },
-      { at: "thinking", step: "思考中", title: "答える前に", text: "AIが考えている途中です" },
-      { at: "proc-point", step: "思考プロセス", title: "AIが考えた道すじ（押すと開け閉めできます）", text: "答えの前に、どう考えたかを確かめられる" },
-      { at: "off", title: "答えが出るまで時間がかかるので", text: "ふだんはオフ、じっくり考えさせたいときにオン" },
+      { at: 0, step: "チャプタ5", title: "推論モード", text: "AIに、よく考えてから答えてもらう",
+        say: "チャプタ5、推論モード。AIに、よく考えてから答えてもらう機能です。" },
+      { at: "toggle-point", step: "推論モード", title: "電球のボタン（Gemma4 を選んでいるときだけ表示）", text: "押すと、推論モードがオンになります",
+        say: "電球のボタンを押すと、推論モードがオンになります。このボタンは、ジェマフォーを選んでいるときだけ表示されます。" },
+      { at: "typed", title: "順を追って考える問題を", text: "聞いてみます",
+        say: "順を追って考える必要がある問題を、聞いてみます。" },
+      { at: "thinking", step: "思考中", title: "答える前に", text: "AIが考えている途中です",
+        say: "思考中と表示されている間は、AIが答える前に考えている途中です。" },
+      { at: "proc-point", step: "思考プロセス", title: "AIが考えた道すじ（押すと開け閉めできます）", text: "答えの前に、どう考えたかを確かめられる",
+        say: "思考プロセスを押すと、AIが考えた道すじが開いて、どう考えて答えたかを確かめられます。" },
+      { at: "off", title: "答えが出るまで時間がかかるので", text: "ふだんはオフ、じっくり考えさせたいときにオン",
+        say: "推論モードは、答えが出るまで時間がかかります。ふだんはオフにして、じっくり考えさせたいときだけオンにしましょう。" },
     ],
   },
   {
     id: "ch6",
+    thumb: "sources",
+    retime: [
+      { from: "sent", to: "searching", as: 0.6 },
+      { from: "searching", to: "searched", as: 3 },
+      wait("searched", "streaming"),
+      { from: "streaming", to: "answered", as: 6 },
+    ],
+    captions: [
+      { at: 0, step: "チャプタ6", title: "Web検索", text: "インターネットで調べてから答えてもらう",
+        say: "チャプタ6、ウェブ検索。AIの知識は、学習した時点までのものです。ウェブ検索を使うと、インターネットで新しい情報を調べてから答えてもらえます。" },
+      { at: "toggle-point", step: "Web検索", title: "地球のマークのボタン", text: "押すと、Web検索がオンになります",
+        say: "入力欄の横にある、地球のマークのボタンを押すと、ウェブ検索がオンになります。" },
+      { at: "notice", step: "注意", title: "検索キーワードはインターネットへ送られます", text: "個人情報や社外秘は入力しない",
+        say: "オンの間は、質問から作った検索キーワードが、インターネットの検索エンジンへ送られます。個人情報や社外秘は、入力しないでください。" },
+      { at: "typed", title: "AIが知らない最近の出来事を", text: "聞いてみます",
+        say: "AIが知らない、最近の出来事を聞いてみます。" },
+      { at: "searching", step: "検索中", title: "質問から検索キーワードを作って", text: "インターネットを検索しています",
+        say: "AIが質問から検索キーワードを作って、インターネットを検索しています。" },
+      { at: "streaming", title: "見つかったページの内容をもとに", text: "AIが答えをまとめます",
+        say: "見つかったページの内容をもとに、AIが答えをまとめます。" },
+      { at: "sources-point", step: "参照したWebページ", title: "答えの下のここを押すと", text: "AIが参考にしたページの一覧が開きます",
+        say: "答えの下にある、参照したウェブページを押すと、AIが参考にしたページの一覧が開きます。" },
+      { at: "sources", step: "出典", title: "検索キーワードと、参考にしたページ", text: "大事な情報は、元のページで確かめよう",
+        say: "AIが実際に使った検索キーワードと、出典のリンクが表示されます。AIは検索結果の抜粋だけを読んで答えているので、大事な情報は、元のページで確かめましょう。" },
+      { at: "searxng", step: "SearXNG", title: "この研修で使っている検索の仕組み", text: "いくつもの検索エンジンの結果をまとめるメタ検索エンジン",
+        say: "この研修では、サークス・エヌジーという仕組みで検索しています。いくつもの検索エンジンにまとめて問い合わせて、結果を一つにまとめる、メタ検索エンジンです。研修用のサーバーから問い合わせるので、だれが検索したかは、検索エンジンには伝わりません。" },
+      { at: "off-point", title: "答えが出るまで少し時間がかかるので", text: "ふだんはオフ、新しい情報が必要なときにオン",
+        say: "ウェブ検索を使うと、答えが出るまで少し時間がかかります。ふだんはオフにして、新しい情報が必要なときだけオンにしましょう。" },
+    ],
+  },
+  {
+    id: "ch7",
     thumb: "picked",
     retime: [
       { from: "start", to: "sent", as: 3 },
@@ -148,15 +221,32 @@ const CHAPTERS = [
       { from: "generating", to: "question", as: 2.5 },
     ],
     captions: [
-      { at: 0, step: "チャプタ6", title: "新しく始める・確認テスト", text: "話題を変えるときと、最後のふりかえり" },
-      { at: "clear-point", step: "新規チャット", title: "ゴミ箱のボタンで会話を消して", text: "新しい話題は、新しいチャットで" },
-      { at: "quiz-point", step: "確認テスト", title: "ハンズオンのあとに", text: "学んだ内容を4択テストで確認" },
-      { at: "quiz", step: "確認テスト", title: "問題はAIがその場で作るので", text: "受けるたびに内容が変わります" },
-      { at: "question", title: "1問ずつ答えると", text: "すぐに正解と解説が表示されます" },
-      { at: "done", title: "結果はこのブラウザにだけ記録されます", text: "何度でも挑戦しよう" },
+      { at: 0, step: "チャプタ7", title: "新しく始める・確認テスト", text: "話題を変えるときと、最後のふりかえり",
+        say: "チャプタ7、新しく始める、確認テスト。話題を変えるときの方法と、最後のふりかえりです。" },
+      { at: "clear-point", step: "新規チャット", title: "ゴミ箱のボタンで会話を消して", text: "新しい話題は、新しいチャットで",
+        say: "話題を変えるときは、ゴミ箱のボタンで会話を消して、新しいチャットを始めます。前の話に引きずられずに答えてもらえます。" },
+      { at: "quiz-point", step: "確認テスト", title: "ハンズオンのあとに", text: "学んだ内容を4択テストで確認",
+        say: "ハンズオンのあとは、確認テストで、学んだ内容を4択の問題で確かめます。" },
+      { at: "quiz", step: "確認テスト", title: "問題はAIがその場で作るので", text: "受けるたびに内容が変わります",
+        say: "問題はAIがその場で作るので、受けるたびに内容が変わります。" },
+      { at: "question", title: "1問ずつ答えると", text: "すぐに正解と解説が表示されます",
+        say: "1問ずつ答えると、すぐに正解と解説が表示されます。" },
+      { at: "done", title: "結果はこのブラウザにだけ記録されます", text: "何度でも挑戦しよう",
+        say: "結果は、このブラウザにだけ記録されます。何度でも挑戦してみましょう。" },
     ],
   },
 ];
+
+/** VOICEVOX へ POST する。動画の書き出しで間が空くと使い回しの接続が切れていることがあるので、数回まで送り直す。 */
+async function voicevox(path, init) {
+  for (let tries = 1; ; tries++) {
+    try {
+      return await fetch(`${VOICEVOX_URL}${path}`, { method: "POST", ...init });
+    } catch (e) {
+      if (tries >= 3) throw e;
+    }
+  }
+}
 
 /** 文を VOICEVOX で読み上げた wav を作り、ファイル名と長さ（秒）を返す。同じ文・話者なら作り直さない。 */
 async function synthesize(text, speaker, speed = VOICE_SPEED) {
@@ -164,14 +254,13 @@ async function synthesize(text, speaker, speed = VOICE_SPEED) {
   const file = `${voice}${key}.wav`;
   if (!existsSync(file)) {
     const q = new URLSearchParams({ text, speaker: String(speaker) });
-    const queryRes = await fetch(`${VOICEVOX_URL}/audio_query?${q}`, { method: "POST" });
+    const queryRes = await voicevox(`/audio_query?${q}`);
     if (!queryRes.ok) throw new Error(`VOICEVOX の audio_query に失敗しました (${queryRes.status})`);
     const query = await queryRes.json();
     query.speedScale = speed;
     query.prePhonemeLength = 0.05;
     query.postPhonemeLength = 0.1;
-    const synthRes = await fetch(`${VOICEVOX_URL}/synthesis?speaker=${speaker}`, {
-      method: "POST",
+    const synthRes = await voicevox(`/synthesis?speaker=${speaker}`, {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(query),
     });
@@ -198,6 +287,40 @@ function writeNarration(lines, total, outFile) {
   ]);
 }
 
+/** 字幕で読み上げる文。say が無ければ帯の大きい一言をそのまま読む。 */
+const spoken = (cap) => cap.say ?? cap.text;
+
+/** 読み上げのために画面を止める位置は、字幕が出てからこの秒数後（素材の秒。囲みの枠が出きったころ）。 */
+const PAUSE_AFTER = 0.6;
+
+/**
+ * 読み上げが字幕の表示時間に収まらない字幕について、その字幕が出た少し後で画面を止める区間
+ * （retime の一時停止）を作る。どの声でも収まるよう、いちばん長い声に合わせる。
+ */
+async function narrationPauses(c, marks, duration, retime) {
+  const map = retimer(marks, duration, retime);
+  const total = map(duration) + HOLD;
+  const raw = (at) => (typeof at === "number" ? at : marks.find((m) => m.name === at)?.t);
+  const pauses = [];
+  for (const [i, cap] of c.captions.entries()) {
+    const from = raw(cap.at);
+    if (from === undefined) throw new Error(`目印がありません: ${cap.at}`);
+    const next = c.captions[i + 1];
+    const nextRaw = next ? raw(next.at) : duration;
+    const span = (next ? map(nextRaw) : total) - map(from);
+    let longest = 0;
+    for (const v of VOICES) longest = Math.max(longest, (await synthesize(spoken(cap), v.speaker)).seconds);
+    // 0.1 秒は計算の誤差で収まらなくならないための余裕。
+    const short = longest + VOICE_MARGIN + 0.1 - span;
+    if (short > 0) {
+      const at = Math.min(from + PAUSE_AFTER, (from + nextRaw) / 2);
+      pauses.push({ from: at, to: at, as: Number(short.toFixed(3)) });
+      console.log(`  ${c.id} 字幕${i + 1}: 読み上げに合わせて ${short.toFixed(1)} 秒止める`);
+    }
+  }
+  return pauses;
+}
+
 const only = process.argv[2];
 const targets = only ? CHAPTERS.filter((c) => c.id === only) : CHAPTERS;
 if (!targets.length) throw new Error(`そんなチャプタはありません: ${only}`);
@@ -222,29 +345,30 @@ for (const c of targets) {
   const dir = `${out}${c.id}`;
   const { marks, duration } = JSON.parse(readFileSync(`${dir}/frames.json`, "utf8"));
   const retime = clamp(marks, duration, c.retime);
+  if (NARRATION) retime.push(...(await narrationPauses(c, marks, duration, retime)));
   const fitTo = retimer(marks, duration, retime)(duration) + HOLD;
   const clip = `${clips}${c.id}.mp4`;
   const { total, captions: spans } = renderClip(dir, clip, { retime, captions: c.captions, fitTo });
 
-  // 字幕の大きい一言を、声ごとに読み上げる。字幕の表示時間に収まらない文は、その文だけ
-  // 速めて読み直す（VOICE_SPEED_MAX まで）。それでも収まらなければ知らせる
-  // （字幕の at をずらすか、文を短くして直す。収まらないと次の字幕の読み上げと声が重なる）。
+  // 字幕ごとの読み上げ文（say）を、声ごとに読み上げる。表示時間は narrationPauses で読み上げに
+  // 合わせて延ばしてあるので、ふつうは標準の速さで収まる。万一収まらない文は、その文だけ速めて
+  // 読み直す（VOICE_SPEED_MAX まで）。それでも収まらなければ知らせる（収まらないと次の字幕の読み上げと声が重なる）。
   if (NARRATION) {
     for (const v of VOICES) {
       const lines = [];
       for (const [i, cap] of c.captions.entries()) {
         const span = spans[i].to - spans[i].from;
         let speed = VOICE_SPEED;
-        let { file, seconds } = await synthesize(cap.text, v.speaker, speed);
+        let { file, seconds } = await synthesize(spoken(cap), v.speaker, speed);
         // 文の前後の無音は速さで縮まないため、一度では収まりきらないことがある。数回まで詰め直す。
         for (let tries = 0; tries < 3 && seconds + VOICE_MARGIN > span && speed < VOICE_SPEED_MAX; tries++) {
           speed = Math.min(Math.round((Math.ceil(speed * (seconds / (span - VOICE_MARGIN)) * 100) + 2)) / 100, VOICE_SPEED_MAX);
-          ({ file, seconds } = await synthesize(cap.text, v.speaker, speed));
+          ({ file, seconds } = await synthesize(spoken(cap), v.speaker, speed));
         }
         if (speed !== VOICE_SPEED) console.log(`  ${c.id} ${v.name} 字幕${i + 1}: 表示 ${span.toFixed(1)} 秒に合わせて ${speed} 倍で読む`);
         if (seconds + VOICE_MARGIN > span)
           console.warn(
-            `  ⚠ ${c.id} ${v.name} 字幕${i + 1}「${cap.text}」: 読み上げ ${seconds.toFixed(1)} 秒・表示 ${span.toFixed(1)} 秒（次の字幕まで余白 ${VOICE_MARGIN} 秒を取れない）`,
+            `  ⚠ ${c.id} ${v.name} 字幕${i + 1}「${spoken(cap)}」: 読み上げ ${seconds.toFixed(1)} 秒・表示 ${span.toFixed(1)} 秒（次の字幕まで余白 ${VOICE_MARGIN} 秒を取れない）`,
           );
         lines.push({ file, from: spans[i].from });
       }
