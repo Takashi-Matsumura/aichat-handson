@@ -37,15 +37,17 @@ export default function SourcesPanel({ sources, open, onToggle }: Props) {
           {sources.length === 0 ? (
             <p>関連する資料は見つかりませんでした。</p>
           ) : (
-            sources.map(s => (
+            <>
+            {sources.map(s => (
               <div key={s.id}>
                 <div className="font-medium">{s.title}</div>
                 <div className="text-[11px] text-emerald-700/70 dark:text-emerald-400/70">
-                  {s.file}（類似度 {s.score.toFixed(2)}）
+                  {s.file}（類似度 {s.score.toFixed(2)}{s.whole && '・全文を参照'}）
                 </div>
                 <p className="mt-0.5">{s.snippet}</p>
               </div>
-            ))
+            ))}
+            </>
           )}
         </div>
       )}

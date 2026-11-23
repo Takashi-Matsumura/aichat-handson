@@ -21,6 +21,11 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
   return results
 }
 
+// 複数の検索文をまとめて埋め込む(検索モードで、AIが作った検索文と元の質問文を一度に送る)。
+export async function embedQueries(texts: string[]): Promise<number[][]> {
+  return embedTexts(texts.map(t => `${RAG_CONFIG.queryPrefix}${t}`))
+}
+
 export async function embedQuery(text: string): Promise<number[]> {
   const [vector] = await requestEmbeddings([`${RAG_CONFIG.queryPrefix}${text}`])
   return vector
