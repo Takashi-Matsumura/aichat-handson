@@ -28,7 +28,7 @@ export const HOWTO_VIDEOS: HowtoVideoSet[] = [
     card: '応用編：Web検索と社内資料',
     cardSub: '調べてから答えてもらう使い方',
     chapters: [
-      { id: 'web', title: 'Web検索', summary: 'インターネットで調べてから答えてもらう', duration: 100.7 },
+      { id: 'web', title: 'Web検索', summary: 'インターネットで調べてから答えてもらう', duration: 102.7 },
       { id: 'rag', title: '社内資料を検索（RAG）', summary: '登録された資料をもとに答えてもらう', duration: 88.7 },
     ],
   },
