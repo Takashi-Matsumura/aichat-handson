@@ -247,10 +247,15 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
                     </button>
                   )}
 
-                  <button type="button" onClick={() => toggleExpanded(source.relPath)} className="flex-none">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(source.relPath)}
+                    aria-label={isExpanded ? '内容を閉じる' : '内容を開く'}
+                    className="aqua flex-none w-7 h-7 flex items-center justify-center rounded-full"
+                  >
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      className={`text-gray-400 dark:text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     >
                       <polyline points="6 9 12 15 18 9" />
                     </svg>

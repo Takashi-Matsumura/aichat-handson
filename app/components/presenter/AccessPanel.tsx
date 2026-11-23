@@ -90,12 +90,13 @@ export function AccessPanel({ access }: { access: AccessInfo }) {
                     title={model1Enabled ? '受講者が利用可能（クリックで一時停止）' : '受講者は利用不可（クリックで再開）'}
                     onClick={toggleModel1}
                     disabled={model1Enabled === null || updatingLock}
-                    className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      model1Enabled ? 'bg-ocean-700' : 'bg-gray-300 dark:bg-zinc-600'
+                    className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full disabled:opacity-50 disabled:cursor-not-allowed ${
+                      // Aqua 風：OFF はくぼんだ溝、ON は青いジェル。つまみは白いジェル
+                      model1Enabled ? 'aqua-bar border border-ocean-800' : 'aqua-track'
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      className={`aqua inline-block h-4 w-4 transform rounded-full transition-transform ${
                         model1Enabled ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
