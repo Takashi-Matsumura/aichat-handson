@@ -403,9 +403,10 @@ function Result({
             AIによる問題の生成が一部うまくいかなかったため、{planned}問のうち作れた{total}問で採点しています。
           </p>
         )}
-        <div className="mt-2 grid w-full gap-3 sm:grid-cols-3">
+        {/* スマホ幅でも2列にして縦に長くなりすぎないようにする（1列だとボタンが画面外に下がる） */}
+        <div className="mt-2 grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
           {pages.map((p) => (
-            <div key={p.pageId} className="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+            <div key={p.pageId} className="rounded-xl bg-black/[0.03] px-2 py-3 sm:px-4 dark:bg-white/5">
               <p className="text-xs text-foreground/60">{p.title}</p>
               <p className="mt-0.5 text-lg font-semibold tabular-nums">
                 {p.correct} / {p.total}
