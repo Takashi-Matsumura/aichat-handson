@@ -3,8 +3,8 @@ import { recordAndClassify } from '@/lib/analytics/record'
 import { registerActiveSession } from '@/lib/analytics/active-sessions'
 import { estimateCost } from '@/lib/analytics/pricing'
 import { isModel1Enabled } from '@/lib/settings/store'
-import { retrieve } from '@/lib/rag/search'
-import { buildContextBlock, toSourceRefs, type SourceRef } from '@/lib/rag/prompt'
+import { buildRagContext } from '@/lib/rag/context'
+import type { SourceRef } from '@/lib/rag/prompt'
 import { searchWeb } from '@/lib/web/search'
 import { generateSearchQuery } from '@/lib/web/query'
 import { buildWebContextBlock, formatToday, type WebSearchInfo } from '@/lib/web/prompt'
@@ -65,16 +65,14 @@ export async function POST(request: NextRequest) {
   registerActiveSession(sid)
   const promptText = lastUserMessageContent(messages)
 
-  // RAG: 例外を投げない設計(retrieve内部でtry/catch済み)なので、埋め込みサーバーが
-  // 落ちていてもチャット自体は通常どおり動く。
+  // RAG: 資料が小さいうちは全文を渡し、大きくなったらAIが作った検索文でチャンクを探す(lib/rag/context.ts)。
+  // 例外を投げない設計なので、埋め込みサーバーが落ちていてもチャット自体は通常どおり動く。
   let sources: SourceRef[] = []
   let ragContext = ''
   if (rag === true) {
-    const { hits } = await retrieve(promptText)
-    if (hits.length > 0) {
-      sources = toSourceRefs(hits)
-      ragContext = buildContextBlock(hits)
-    }
+    const result = await buildRagContext(LLAMA_URL, LLAMA_MODEL, messages)
+    sources = result.sources
+    ragContext = result.context
   }
 
   // Web検索: 会話から検索クエリを作り、SearXNG で検索する。RAGと同じく例外を投げない設計で、

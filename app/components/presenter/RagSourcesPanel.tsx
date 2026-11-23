@@ -72,6 +72,12 @@ export function RagSourcesPanel({ rag }: { rag: RagSources }) {
               )}
               {ragStatus.builtAt && `　/　最終構築: ${new Date(ragStatus.builtAt).toLocaleTimeString('ja-JP')}`}
             </span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">
+              回答のしかた: {ragStatus.docContextChars > 0
+                ? `関係が深い文書から全文を最大${ragStatus.docMaxCount}件・合計${ragStatus.docContextChars.toLocaleString()}文字までAIに渡す`
+                : '質問と意味が近いチャンク（資料の一部分）を上位からAIに渡す'}
+              （資料の合計 {ragStatus.totalChars.toLocaleString()}文字{ragStatus.queryCount > 0 && `・AIが検索文を${ragStatus.queryCount}個作って検索`}）
+            </span>
             {ragStatus.error && (
               <span className="text-xs text-red-500 dark:text-red-400">エラー: {ragStatus.error}</span>
             )}

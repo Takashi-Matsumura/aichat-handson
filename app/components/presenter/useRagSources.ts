@@ -9,6 +9,11 @@ export type RagStatus = {
   dims: number | null
   error: string | null
   online: boolean
+  // 資料の合計文字数と、AIに渡す文書の上限(文字数・文書数)、AIに作らせる検索文の数(lib/rag/context.ts)。
+  totalChars: number
+  docContextChars: number
+  docMaxCount: number
+  queryCount: number
 }
 
 export type SourceFile = {
