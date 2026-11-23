@@ -4,7 +4,7 @@
  *   node promo/howto/build.mjs            # 全チャプタ
  *   node promo/howto/build.mjs ch3 rag    # 指定したチャプタだけ
  *
- * 基本の使い方は ch1〜ch6、応用編は web（Web検索）と rag（社内資料）。どちらの動画に入るかは
+ * 基本の使い方は ch1〜ch6、応用編は web（Web検索）・rag（社内資料）・usage（AI利用状況）。どちらの動画に入るかは
  * lib/howto/chapters.ts の HOWTO_VIDEOS で決める。
  *
  * 先に shoot.mjs で撮っておく。字幕だけを直すなら、撮り直さずにこれだけを流せばよい。
@@ -20,7 +20,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { renderClip, renderPngs, retimer } from "../lib/render.mjs";
+import { renderCard, renderClip, renderPngs, retimer } from "../lib/render.mjs";
 
 const out = new URL("../out/howto/", import.meta.url).pathname;
 const png = `${out}png/`;
@@ -60,6 +60,27 @@ function caption({ step, title, text }) {
   </div></body></html>`;
 }
 
+/**
+ * 動画（基本の使い方・応用編）の最後に出す締めのカード。アプリの画面ではなく全画面の画で、
+ * 受講者にこれからの AI 活用を呼びかけて終わる。lead は小見出し、text は大きく出す一言、sub は添える一文。
+ */
+function outroCard({ lead, text, sub }) {
+  return `<!doctype html><html><body style="margin:0;width:${W}px;height:${H}px;overflow:hidden;font-family:${FONT};
+    background:linear-gradient(135deg,${BLUE.deep} 0%,${BLUE.mid} 55%,${BLUE.light} 100%);color:#fff">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:44px">
+    <div style="font-size:44px;font-weight:600;opacity:.9;letter-spacing:2px">${lead}</div>
+    <div style="font-size:104px;font-weight:800;letter-spacing:4px;white-space:nowrap">${text}</div>
+    <div style="font-size:46px;font-weight:600;opacity:.95;white-space:nowrap">${sub}</div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:64px;text-align:center;font-size:34px;font-weight:700;letter-spacing:6px;opacity:.75">AIチャット ハンズオン</div>
+  </body></html>`;
+}
+
+/** 締めのカードの最短の長さ（秒）と、読み上げの前後に空ける間（秒）。 */
+const OUTRO_MIN = 5;
+const OUTRO_LEAD_IN = 0.6;
+const OUTRO_TAIL = 1.4;
+
 const HOLD = 2.5;
 /** AI の応答待ち（1 文字目が出るまで）は縮める。 */
 const wait = (from = "sent", to = "streaming") => ({ from, to, as: 0.4 });
@@ -91,7 +112,7 @@ const CHAPTERS = [
       { at: "note", step: "大切なこと", title: "AIの回答は参考情報", text: "最後は、自分の目で確かめよう",
         say: "AIの回答は、あくまで参考情報です。最後は、自分の目で確かめましょう。" },
       { at: "howto", step: "使い方の動画", title: "この動画と応用編は、ここからいつでも見られます", text: "見たいチャプタを選んで再生できます",
-        say: "この使い方の動画は、ここからいつでも見られます。となりの応用編では、ウェブ検索と、社内資料を使う方法を紹介しています。" },
+        say: "この使い方の動画は、ここからいつでも見られます。となりの応用編では、ウェブ検索と、社内資料を使う方法、それにAIの利用状況の見かたを紹介しています。" },
     ],
   },
   {
@@ -250,6 +271,46 @@ const CHAPTERS = [
     ],
   },
   {
+    id: "usage",
+    thumb: "flipped",
+    retime: [],
+    captions: [
+      { at: 0, step: "応用編 3", title: "AI利用状況", text: "AIをどれだけ使ったかを、数字で確かめよう",
+        say: "応用編、チャプタ3、AI利用状況。自分がAIをどれだけ使ったかを、数字で確かめられます。" },
+      { at: "open-point", step: "利用状況", title: "右上のグラフのボタン", text: "押すと、利用状況のページが開きます",
+        say: "右上にある、グラフのボタンを押すと、AI利用状況のページが開きます。" },
+      { at: "note", step: "あなたの利用分", title: "このブラウザで使った分だけを集計", text: "会場全体ではなく、自分の分だけが出ます",
+        say: "ここに出るのは、このブラウザで使った分だけです。サーバーには保存されず、ほかの受講者の分は含まれません。" },
+      { at: "count", step: "質問した回数", title: "AIに質問を送った回数", text: "再生成も1回に数えます",
+        say: "質問した回数は、AIに質問を送った回数です。答えを再生成したときも、1回に数えます。" },
+      { at: "input", step: "入力トークン", title: "AIに渡した文章の量", text: "それまでの会話も一緒に渡すので、話が長いほど増える",
+        say: "入力トークンは、AIに渡した文章の量です。質問だけでなく、それまでの会話も一緒に渡すので、同じチャットで話が長くなるほど増えます。" },
+      { at: "output", step: "出力トークン", title: "AIが書いた答えの量", text: "長く答えてもらうほど増えます",
+        say: "出力トークンは、AIが書いた答えの量です。長く答えてもらうほど増えます。" },
+      { at: "cost", step: "推定コスト", title: "実際の料金はかかりません", text: "クラウドのAIで使った場合の目安",
+        say: "推定コストは、同じくらいの大きさのAIを、クラウドのサービスで使った場合の目安です。この研修のAIは研修用のサーバーで動いているので、実際の料金はかかりません。" },
+      { at: "flipped", step: "単価", title: "押すと裏返って、計算に使った単価が出ます", text: "入力より出力のほうが高い",
+        say: "押すと裏返って、計算に使った単価が出ます。百万トークンあたりの値段で、大きいモデルほど高く、どちらのモデルも、入力より出力のほうが高く設定されています。" },
+      { at: "latency", step: "平均レスポンス時間", title: "送ってから答え終わるまで", text: "1回あたりにかかった時間の平均",
+        say: "平均レスポンス時間は、質問を送ってから、答えが書き終わるまでにかかった時間の平均です。" },
+      { at: "models", step: "モデル別", title: "使ったモデルごとに", text: "コストと速さを見比べられます",
+        say: "モデル別の比較では、使ったモデルごとに、1件あたりのコストと、答えの速さを見比べられます。" },
+      { at: "speed", step: "生成速度", title: "1秒あたりに書けたトークンの数（tok/s）", text: "数字が大きいほど、速く書ける",
+        say: "生成速度は、1秒あたりに書けたトークンの数です。数字が大きいほど、答えを速く書けています。" },
+      { at: "services", step: "関連サービス", title: "Web検索と社内資料の検索の仕組み", text: "停止中のときは、講師に知らせよう",
+        say: "下には、ウェブ検索と、社内資料の検索に使う仕組みが、動いているかどうかが出ます。停止中のときは、講師に知らせましょう。" },
+      { at: "end", title: "聞き方しだいで、トークンもコストも変わる", text: "短く的確に聞くのが、賢い使い方",
+        say: "聞き方しだいで、トークンもコストも変わります。短く、的確に聞くのが、賢いAIの使い方です。" },
+    ],
+    // 応用編の最後のチャプタなので、締めのカードを付ける。
+    outro: {
+      lead: "応用編は、ここまでです",
+      text: "AIの活用を、ここから広げよう",
+      sub: "調べる・確かめる・振り返るで、AIを賢く使いこなそう",
+      say: "応用編は、ここまでです。このアプリから、みなさんのAI活用が広がっていくことを願っています。",
+    },
+  },
+  {
     id: "ch6",
     thumb: "picked",
     retime: [
@@ -272,6 +333,13 @@ const CHAPTERS = [
       { at: "done", title: "結果はこのブラウザにだけ記録されます", text: "何度でも挑戦しよう",
         say: "結果は、このブラウザにだけ記録されます。何度でも挑戦してみましょう。" },
     ],
+    // 基本の使い方の最後のチャプタなので、締めのカードを付ける。
+    outro: {
+      lead: "使い方の動画は、ここまでです",
+      text: "AIの活用を、ここから広げよう",
+      sub: "試して、確かめて、毎日の仕事に活かしていこう",
+      say: "使い方の動画は、ここまでです。このアプリから、みなさんのAI活用が広がっていくことを願っています。",
+    },
   },
 ];
 
@@ -386,7 +454,25 @@ for (const c of targets) {
   if (NARRATION) retime.push(...(await narrationPauses(c, marks, duration, retime)));
   const fitTo = retimer(marks, duration, retime)(duration) + HOLD;
   const clip = `${clips}${c.id}.mp4`;
-  const { total, captions: spans } = renderClip(dir, clip, { retime, captions: c.captions, fitTo });
+  const rendered = renderClip(dir, c.outro ? `${clips}${c.id}-body.mp4` : clip, { retime, captions: c.captions, fitTo });
+  const spans = rendered.captions;
+  let total = rendered.total;
+
+  // 締めのカード。読み上げがいちばん長い声でも収まる長さにして、本編のうしろにつなぐ。
+  let outroAt = null;
+  if (c.outro) {
+    let longest = 0;
+    if (NARRATION) for (const v of VOICES) longest = Math.max(longest, (await synthesize(c.outro.say, v.speaker)).seconds);
+    const length = Math.max(OUTRO_MIN, OUTRO_LEAD_IN + longest + OUTRO_TAIL);
+    const cardPng = `${png}${c.id}-outro.png`;
+    await renderPngs([{ html: outroCard(c.outro), file: cardPng }]);
+    renderCard([{ png: cardPng, at: 0 }], `${clips}${c.id}-outro.mp4`, length.toFixed(3));
+    const list = `${clips}${c.id}.txt`;
+    writeFileSync(list, [`${clips}${c.id}-body.mp4`, `${clips}${c.id}-outro.mp4`].map((f) => `file '${f}'`).join("\n"));
+    execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", list, "-c", "copy", clip]);
+    outroAt = total + OUTRO_LEAD_IN;
+    total += length;
+  }
 
   // 字幕ごとの読み上げ文（say）を、声ごとに読み上げる。表示時間は narrationPauses で読み上げに
   // 合わせて延ばしてあるので、ふつうは標準の速さで収まる。万一収まらない文は、その文だけ速めて
@@ -410,6 +496,7 @@ for (const c of targets) {
           );
         lines.push({ file, from: spans[i].from });
       }
+      if (outroAt !== null) lines.push({ file: (await synthesize(c.outro.say, v.speaker)).file, from: outroAt });
       writeNarration(lines, total, `${pub}${c.id}.${v.id}.m4a`);
     }
   }
