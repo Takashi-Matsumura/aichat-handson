@@ -188,7 +188,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
             フォントサイズ変更アイコンが収まるようにする。 */}
         <div className="relative flex items-center gap-2">
           <div ref={tabsWrapRef} className="flex-1 min-w-0 overflow-hidden">
-            <div className="flex gap-1 pb-px w-max">
+            <div className="aqua-segment flex gap-0.5 p-0.5 rounded-full w-max mb-1.5">
               {PAGES.map((page, i) => {
                 const active = currentPage === page.id
                 return (
@@ -200,10 +200,8 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
                       setCurrentPage(page.id)
                       onPageChange?.(page.id)
                     }}
-                    className={`flex-none ${compactTabs ? 'w-9 px-0 text-center' : 'px-3'} py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
-                      active
-                        ? 'border-white text-white bg-white/15'
-                        : 'border-transparent text-ocean-200 hover:text-white hover:bg-white/10'
+                    className={`aqua-segment-item flex-none ${compactTabs ? 'w-9 px-0 text-center' : 'px-3'} py-1 text-xs font-medium rounded-full ${
+                      active ? 'aqua aqua-blue' : ''
                     }`}
                   >
                     {/* id は非表示のテキストがあると飛び番になるため、並び順の番号を出す */}
@@ -220,7 +218,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
           <div
             ref={measureRef}
             aria-hidden
-            className="absolute left-0 top-0 invisible pointer-events-none flex gap-1 whitespace-nowrap"
+            className="absolute left-0 top-0 invisible pointer-events-none flex gap-0.5 p-0.5 border whitespace-nowrap"
           >
             {PAGES.map((page) => (
               <span key={page.id} className="flex-none px-3 py-1.5 text-xs font-medium">
