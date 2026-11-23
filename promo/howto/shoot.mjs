@@ -1,5 +1,5 @@
 /**
- * アプリの使い方動画の撮影（チャプタごと）。基本の使い方は ch1〜ch6、応用編は web（Web検索）と rag（社内資料）。
+ * アプリの使い方動画の撮影（チャプタごと）。基本の使い方は ch1〜ch6、応用編は web（Web検索）・rag（社内資料）・usage（AI利用状況）。
  *
  *   node promo/howto/shoot.mjs           # 全チャプタ
  *   node promo/howto/shoot.mjs ch3 rag   # 指定したチャプタだけ
@@ -9,7 +9,10 @@
  *
  * 撮った素材は promo/out/howto/<id>/。字幕と合成は build.mjs。
  */
+import { openStage, startRecording } from "../lib/recorder.mjs";
+import { openChat } from "../scenes/common.mjs";
 import {
+  OUT,
   begin,
   finish,
   input,
@@ -407,6 +410,81 @@ const SCENES = {
     rec.mark("off");
     await pause(page, 3000);
     await finish("rag", browser, rec, page);
+  },
+
+  /** 応用編 3. AI利用状況（自分の利用分を数字で見る）。 */
+  async usage() {
+    // 下ごしらえ（撮らない）。同じ質問をモデル 1・2 に 1 回ずつ送り、モデル別の比較に両方の数字を出す。
+    // 利用状況はブラウザの localStorage にだけ積まれるので、撮影のブラウザは毎回まっさらな状態から始まる。
+    const { browser, page } = await openStage();
+    const noop = { mark: () => {} };
+    const question = "AIの「トークン」とは何ですか？3行で教えてください。";
+    for (const model of [1, 2]) {
+      await openChat(page, { model });
+      await input(page).fill(question);
+      await sendAndWait(page, noop);
+      await pause(page, 500);
+    }
+    const rec = await startRecording(page, `${OUT}usage`);
+    await pause(page, 3000);
+
+    const link = page.getByRole("link", { name: "AI利用状況ダッシュボード" });
+    await spotlight(page, link);
+    rec.mark("open-point");
+    await pause(page, 3000);
+    await unspot(page);
+    await moveAndClick(page, link);
+    await page.getByText("質問した回数").waitFor();
+    rec.mark("opened");
+    await pause(page, 2500);
+
+    const tile = (label) => page.getByText(label, { exact: true }).first().locator("..");
+    const steps = [
+      ["note", page.getByText(/このブラウザに記録された分だけ/), 5000],
+      ["count", tile("質問した回数"), 3500],
+      ["input", tile("入力トークン"), 5000],
+      ["output", tile("出力トークン"), 4000],
+      ["cost", page.getByRole("button", { name: /推定コスト/ }), 5000],
+    ];
+    for (const [name, loc, ms] of steps) {
+      await spotlight(page, loc);
+      rec.mark(name);
+      await pause(page, ms);
+    }
+    await unspot(page);
+    const cost = page.getByRole("button", { name: /推定コスト/ });
+    await moveAndClick(page, cost);
+    rec.mark("flipped");
+    await pause(page, 6000);
+    await moveAndClick(page, cost);
+    await pause(page, 1200);
+    await spotlight(page, tile("平均レスポンス時間"));
+    rec.mark("latency");
+    await pause(page, 4000);
+    await unspot(page);
+
+    const models = page.getByRole("heading", { name: "モデル別のコスト・速度比較" }).locator("..");
+    await models.evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "center" }));
+    await pause(page, 1200);
+    await spotlight(page, models.locator("> div.grid"));
+    rec.mark("models");
+    await pause(page, 6000);
+    await spotlight(page, page.getByText("生成速度", { exact: true }).first().locator(".."));
+    rec.mark("speed");
+    await pause(page, 4500);
+    await unspot(page);
+
+    const services = page.getByRole("heading", { name: "関連サービスの稼働状況" }).locator("..");
+    await services.evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "center" }));
+    await pause(page, 1200);
+    await spotlight(page, services.locator("> div.grid"));
+    rec.mark("services");
+    await pause(page, 5000);
+    await unspot(page);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    rec.mark("end");
+    await pause(page, 3000);
+    await finish("usage", browser, rec, page);
   },
 
   /** 6. 新しく始める・確認テスト。 */
