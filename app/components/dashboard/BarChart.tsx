@@ -28,11 +28,8 @@ export function BarChart({ items, valueFormatter }: Props) {
               <span className="w-28 shrink-0 truncate text-xs text-foreground/70" title={item.label}>
                 {item.label}
               </span>
-              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                <div
-                  className="h-full rounded-r-full"
-                  style={{ width: `${pct}%`, backgroundColor: "var(--chart-bar)" }}
-                />
+              <div className="aqua-track h-3 flex-1 overflow-hidden rounded-full">
+                <div className="aqua-bar h-full rounded-full" style={{ width: `${pct}%` }} />
               </div>
               <span className="w-14 shrink-0 text-right text-xs tabular-nums text-foreground/70">
                 {format(item.value)}

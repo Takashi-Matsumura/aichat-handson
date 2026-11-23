@@ -71,10 +71,10 @@ export function ChatComposer({
         return (
           <div className="mb-2 flex items-center gap-2 text-xs text-gray-400 dark:text-zinc-500">
             <span className="flex-none">コンテキスト</span>
-            <div className="flex-1 h-1.5 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+            <div className="aqua-track flex-1 h-2.5 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-ocean-300 dark:bg-ocean-500'
+                className={`aqua-bar h-full rounded-full transition-all duration-300 ${
+                  pct > 90 ? 'aqua-red' : pct > 70 ? 'aqua-amber' : ''
                 }`}
                 style={{ width: `${pct}%` }}
               />
