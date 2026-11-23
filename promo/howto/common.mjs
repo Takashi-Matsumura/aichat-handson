@@ -28,8 +28,14 @@ export async function begin(name, { model = 2 } = {}) {
   return { browser, page, rec };
 }
 
-export async function finish(name, browser, rec) {
+export async function finish(name, browser, rec, page) {
+  // 送信の失敗などでチャット画面にエラー（赤い帯）が出ていたら、その撮影は使えないので止める。
+  const error = page ? await page.locator("p.text-red-500").first().textContent({ timeout: 500 }).catch(() => null) : null;
   const result = await rec.stop();
+  if (error) {
+    await browser.close();
+    throw new Error(`${name}: 撮影中にエラーが表示されました（${error.trim()}）。撮り直してください`);
+  }
   console.log(
     `${name}:`,
     result.duration.toFixed(1),

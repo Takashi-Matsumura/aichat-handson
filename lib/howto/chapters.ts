@@ -6,12 +6,13 @@ import voicesConfig from './voices.json'
 export type HowtoChapter = { id: string; title: string; summary: string; duration: number }
 
 export const HOWTO_CHAPTERS: HowtoChapter[] = [
-  { id: 'ch1', title: '画面の見かた', summary: 'どこに何があるか', duration: 46.4 },
-  { id: 'ch2', title: '質問してみよう', summary: '例文・改行・送信・停止', duration: 54.2 },
-  { id: 'ch3', title: '答えを確かめる', summary: '再生成・見比べ・トークン', duration: 56.7 },
-  { id: 'ch4', title: 'テキストを見ながら進める', summary: 'テキストの開き方と［入力］ボタン', duration: 65.6 },
-  { id: 'ch5', title: '推論モード', summary: 'AIに考えてから答えてもらう', duration: 38.9 },
-  { id: 'ch6', title: '新しく始める・確認テスト', summary: '新規チャットと4択テスト', duration: 45.1 },
+  { id: 'ch1', title: '画面の見かた', summary: 'どこに何があるか', duration: 62.3 },
+  { id: 'ch2', title: '質問してみよう', summary: '例文・改行・送信・停止', duration: 67.0 },
+  { id: 'ch3', title: '答えを確かめる', summary: '再生成・見比べ・トークン', duration: 57.3 },
+  { id: 'ch4', title: 'テキストを見ながら進める', summary: 'テキストの開き方と［入力］ボタン', duration: 72.8 },
+  { id: 'ch5', title: '推論モード', summary: 'AIに考えてから答えてもらう', duration: 48.4 },
+  { id: 'ch6', title: 'Web検索', summary: 'インターネットで調べてから答えてもらう', duration: 99.0 },
+  { id: 'ch7', title: '新しく始める・確認テスト', summary: '新規チャットと4択テスト', duration: 52.4 },
 ]
 
 // ナレーション(字幕の読み上げ)で受講者が選べる声。一覧は lib/howto/voices.json で、

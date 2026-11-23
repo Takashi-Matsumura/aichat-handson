@@ -7,7 +7,7 @@ export const OUT = new URL("../out/", import.meta.url).pathname;
 
 /**
  * チャット画面を、毎回同じ状態で開く。
- * テキストのパネルは閉じ、推論モードと RAG は切り、model（1 か 2）を選ぶ。既定はハンズオン中に使うモデル 2。
+ * テキストのパネルは閉じ、推論モード・RAG・Web検索は切り、model（1 か 2）を選ぶ。既定はハンズオン中に使うモデル 2。
  * 会話はタブ内（sessionStorage）に残るので、それも消す。
  */
 export async function openChat(page, { model = 2 } = {}) {
@@ -16,6 +16,7 @@ export async function openChat(page, { model = 2 } = {}) {
     localStorage.setItem("handson-panel-open", "false");
     localStorage.setItem("thinking-mode", "false");
     localStorage.setItem("rag-mode", "false");
+    localStorage.setItem("web-mode", "false");
     sessionStorage.clear();
   });
   await page.reload();
