@@ -1,8 +1,11 @@
 /**
  * アプリの使い方動画（チャプタ）を組み立て、アプリから再生する用の動画とサムネイルを public/howto/ へ書き出す。
  *
- *   node promo/howto/build.mjs        # 全チャプタ
- *   node promo/howto/build.mjs ch3    # 1 本だけ
+ *   node promo/howto/build.mjs            # 全チャプタ
+ *   node promo/howto/build.mjs ch3 rag    # 指定したチャプタだけ
+ *
+ * 基本の使い方は ch1〜ch6、応用編は web（Web検索）と rag（社内資料）。どちらの動画に入るかは
+ * lib/howto/chapters.ts の HOWTO_VIDEOS で決める。
  *
  * 先に shoot.mjs で撮っておく。字幕だけを直すなら、撮り直さずにこれだけを流せばよい。
  * 仕上がりの秒数は lib/howto/chapters.ts の duration に手で写す（一覧に長さを出すため）。
@@ -87,8 +90,8 @@ const CHAPTERS = [
         say: "AI利用状況ダッシュボードでは、みなさんがどんなふうにAIを使ったかを見られます。" },
       { at: "note", step: "大切なこと", title: "AIの回答は参考情報", text: "最後は、自分の目で確かめよう",
         say: "AIの回答は、あくまで参考情報です。最後は、自分の目で確かめましょう。" },
-      { at: "howto", step: "使い方の動画", title: "この動画は、ここからいつでも見られます", text: "見たいチャプタを選んで再生できます",
-        say: "この使い方の動画は、ここからいつでも見られます。見たいチャプタを選んで再生してください。" },
+      { at: "howto", step: "使い方の動画", title: "この動画と応用編は、ここからいつでも見られます", text: "見たいチャプタを選んで再生できます",
+        say: "この使い方の動画は、ここからいつでも見られます。となりの応用編では、ウェブ検索と、社内資料を使う方法を紹介しています。" },
     ],
   },
   {
@@ -180,7 +183,7 @@ const CHAPTERS = [
     ],
   },
   {
-    id: "ch6",
+    id: "web",
     thumb: "sources",
     retime: [
       { from: "sent", to: "searching", as: 0.6 },
@@ -189,8 +192,8 @@ const CHAPTERS = [
       { from: "streaming", to: "answered", as: 6 },
     ],
     captions: [
-      { at: 0, step: "チャプタ6", title: "Web検索", text: "インターネットで調べてから答えてもらう",
-        say: "チャプタ6、ウェブ検索。AIの知識は、学習した時点までのものです。ウェブ検索を使うと、インターネットで新しい情報を調べてから答えてもらえます。" },
+      { at: 0, step: "応用編 1", title: "Web検索", text: "インターネットで調べてから答えてもらう",
+        say: "応用編、チャプタ1、ウェブ検索。AIの知識は、学習した時点までのものです。ウェブ検索を使うと、インターネットで新しい情報を調べてから答えてもらえます。" },
       { at: "toggle-point", step: "Web検索", title: "地球のマークのボタン", text: "押すと、Web検索がオンになります",
         say: "入力欄の横にある、地球のマークのボタンを押すと、ウェブ検索がオンになります。" },
       { at: "notice", step: "注意", title: "検索キーワードはインターネットへ送られます", text: "個人情報や社外秘は入力しない",
@@ -212,7 +215,42 @@ const CHAPTERS = [
     ],
   },
   {
-    id: "ch7",
+    id: "rag",
+    thumb: "sources",
+    retime: [
+      { from: "start", to: "typed", as: 5 },
+      wait(),
+      { from: "streaming", to: "answered", as: 5 },
+      wait("sent2", "streaming2"),
+      { from: "streaming2", to: "answered2", as: 5 },
+    ],
+    captions: [
+      { at: 0, step: "応用編 2", title: "社内資料を検索（RAG）", text: "登録された資料をもとに答えてもらう",
+        say: "応用編、チャプタ2、社内資料の検索。ラグという仕組みを使うと、会社の規程などの資料を調べてから、AIに答えてもらえます。" },
+      { at: "typed", title: "まずはRAGをオフのまま", text: "社内の決まりを聞いてみます",
+        say: "まずは、ラグをオフのまま、社内の決まりを聞いてみます。" },
+      { at: "review", step: "オフのとき", title: "AIは、この会社の決まりを知りません", text: "一般的な答えしか返せない",
+        say: "AIは、この会社の決まりを知らないので、一般的な答えしか返せません。" },
+      { at: "toggle-point", step: "RAG", title: "本のマークのボタン", text: "押すと、社内資料の検索がオンになります",
+        say: "新しいチャットにして、入力欄の横にある、本のマークのボタンを押すと、社内資料の検索がオンになります。" },
+      { at: "typed2", title: "同じ質問を", text: "もう一度聞いてみます",
+        say: "同じ質問を、もう一度聞いてみます。" },
+      { at: "streaming2", title: "質問に近い部分を資料から探して", text: "その内容をもとにAIが答えます",
+        say: "AIは、質問に近い部分を登録された資料から探して、その内容をもとに答えます。" },
+      { at: "2-review", step: "オンのとき", title: "資料に書かれた、この会社の決まりで", text: "具体的に答えられる",
+        say: "今度は、資料に書かれた、この会社の決まりをもとに、具体的に答えられました。" },
+      { at: "sources-point", step: "参照した資料", title: "答えの下のここを押すと", text: "AIが参考にした資料の一覧が開きます",
+        say: "答えの下にある、参照した資料を押すと、AIが参考にした資料の一覧が開きます。" },
+      { at: "sources", step: "出典", title: "資料の名前と、使った部分", text: "大事な内容は、元の資料で確かめよう",
+        say: "どの資料の、どの部分を使ったかが表示されます。AIが読み違えることもあるので、大事な内容は、元の資料で確かめましょう。" },
+      { at: "admin", step: "資料の登録", title: "検索する資料は、講師が管理者画面で登録します", text: "資料は研修用のサーバーの中だけで使われます",
+        say: "検索する資料は、講師が管理者画面で登録します。資料は研修用のサーバーの中で検索されるので、インターネットには送られません。" },
+      { at: "off-point", title: "資料に無いことは答えられないので", text: "社内の決まりを調べたいときにオン",
+        say: "ラグは、登録された資料に無いことは答えられません。社内の決まりや資料について聞きたいときに、オンにしましょう。" },
+    ],
+  },
+  {
+    id: "ch6",
     thumb: "picked",
     retime: [
       { from: "start", to: "sent", as: 3 },
@@ -221,8 +259,8 @@ const CHAPTERS = [
       { from: "generating", to: "question", as: 2.5 },
     ],
     captions: [
-      { at: 0, step: "チャプタ7", title: "新しく始める・確認テスト", text: "話題を変えるときと、最後のふりかえり",
-        say: "チャプタ7、新しく始める、確認テスト。話題を変えるときの方法と、最後のふりかえりです。" },
+      { at: 0, step: "チャプタ6", title: "新しく始める・確認テスト", text: "話題を変えるときと、最後のふりかえり",
+        say: "チャプタ6、新しく始める、確認テスト。話題を変えるときの方法と、最後のふりかえりです。" },
       { at: "clear-point", step: "新規チャット", title: "ゴミ箱のボタンで会話を消して", text: "新しい話題は、新しいチャットで",
         say: "話題を変えるときは、ゴミ箱のボタンで会話を消して、新しいチャットを始めます。前の話に引きずられずに答えてもらえます。" },
       { at: "quiz-point", step: "確認テスト", title: "ハンズオンのあとに", text: "学んだ内容を4択テストで確認",
@@ -321,9 +359,9 @@ async function narrationPauses(c, marks, duration, retime) {
   return pauses;
 }
 
-const only = process.argv[2];
-const targets = only ? CHAPTERS.filter((c) => c.id === only) : CHAPTERS;
-if (!targets.length) throw new Error(`そんなチャプタはありません: ${only}`);
+const only = process.argv.slice(2);
+for (const id of only) if (!CHAPTERS.some((c) => c.id === id)) throw new Error(`そんなチャプタはありません: ${id}`);
+const targets = only.length ? CHAPTERS.filter((c) => only.includes(c.id)) : CHAPTERS;
 
 function clamp(marks, duration, retime) {
   const at = (n) => (n === "start" ? 0 : n === "end" ? duration : marks.find((m) => m.name === n)?.t);
