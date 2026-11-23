@@ -133,6 +133,8 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
   )
 
   return (
+    // スマホ幅（パネルがチャットの下に重なる配置）では、チャット欄を確保するため高さを画面の 40% までにする。
+    // md 以上は横並びで md:max-h-none のため影響しない
     <aside
       aria-hidden={!isOpen}
       className={`
@@ -142,7 +144,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
         md:border-t-0 md:border-l-2 md:border-ocean-300 dark:md:border-ocean-700
         md:absolute md:top-0 md:right-0 md:bottom-0 md:w-full md:min-w-0 md:max-h-none md:z-20
         transition-[max-height,max-width] duration-300 ease-in-out
-        ${isOpen ? 'max-h-[50vh]' : 'max-h-0'}
+        ${isOpen ? 'max-h-[40vh]' : 'max-h-0'}
         ${!isOpen ? 'md:max-w-0' : isFull ? 'md:max-w-full' : 'md:max-w-[50%]'}
       `}
     >

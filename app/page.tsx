@@ -650,7 +650,8 @@ export default function Home() {
         onUsePrompt={applyPromptText}
       />
 
-      <footer className="flex-none bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700 px-4 py-2 flex items-center justify-between text-xs text-gray-400 dark:text-zinc-500">
+      {/* スマホ幅（パネルが下に重なる配置）でパネルを開いている間はフッターを隠し、チャット欄を広げる */}
+      <footer className={`flex-none bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700 px-4 py-2 items-center justify-between text-xs text-gray-400 dark:text-zinc-500 ${panelOpen ? 'hidden md:flex' : 'flex'}`}>
         <span>© 2026 MatsBACCANO</span>
         <span className="hidden sm:block">AI の回答は参考情報です。重要な意思決定には専門家へご確認ください。</span>
       </footer>
