@@ -139,11 +139,12 @@ export function ChatMessageItem({
                   )}
                   {isStreamingTarget && elapsedSec >= 8 && (
                     <div className="not-prose flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                      <span>応答に時間がかかっています…（{elapsedSec}秒経過）</span>
+                      {/* スマホ幅で「停止す／る」と折れないよう、ボタンは折り返さず、前の文のほうを折り返す */}
+                      <span className="min-w-0">応答に時間がかかっています…（{elapsedSec}秒経過）</span>
                       <button
                         type="button"
                         onClick={onStop}
-                        className="underline decoration-dotted hover:text-amber-700 dark:hover:text-amber-300"
+                        className="shrink-0 whitespace-nowrap underline decoration-dotted hover:text-amber-700 dark:hover:text-amber-300"
                       >
                         停止する
                       </button>
