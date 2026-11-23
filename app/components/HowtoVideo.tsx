@@ -250,7 +250,8 @@ function HowtoVideoModal({ set, onClose }: { set: HowtoVideoSet; onClose: () => 
               <select
                 value={voice.id}
                 onChange={(e) => changeVoice(e.target.value)}
-                className="rounded-lg border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-1 text-xs text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400"
+                // iPhone の Safari は 16px 未満の選択欄をタップすると画面を拡大するため、スマホ幅では 16px にする
+                className="rounded-lg border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-1 text-base md:text-xs text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400"
               >
                 {HOWTO_VOICES.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
