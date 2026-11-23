@@ -71,7 +71,8 @@ export function PromptEditModal({ mode, initialTitle, initialBody, saving, error
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="例: 演習1 やさしい説明"
-            className="w-full rounded-lg border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-3 py-1.5 text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400"
+            // iPhone の Safari は 16px 未満の入力欄にフォーカスすると画面を拡大するため、スマホ幅では 16px にする
+            className="w-full rounded-lg border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-3 py-1.5 text-base md:text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400"
           />
           <label className="text-xs text-gray-400 dark:text-zinc-500">プロンプト本文（受講者の画面にそのまま表示されます）</label>
           <textarea
@@ -79,7 +80,8 @@ export function PromptEditModal({ mode, initialTitle, initialBody, saving, error
             onChange={e => setBody(e.target.value)}
             placeholder="受講者に配信するプロンプトを入力してください"
             rows={10}
-            className="w-full rounded-lg border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-3 py-2 text-sm font-mono text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400 resize-y"
+            // iPhone の Safari は 16px 未満の入力欄にフォーカスすると画面を拡大するため、スマホ幅では 16px にする
+            className="w-full rounded-lg border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-3 py-2 text-base md:text-sm font-mono text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-ocean-400 resize-y"
           />
         </div>
 
