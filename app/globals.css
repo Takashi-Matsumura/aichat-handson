@@ -177,7 +177,9 @@ body {
 
 @media (prefers-color-scheme: dark) {
   @layer components {
-    .aqua {
+    /* グラファイト色は白ジェルだけに当てる。.aqua に直接書くと、後に書いたこちらが
+       色付きジェル（.aqua-blue など）の色まで上書きしてグレーになってしまう。 */
+    .aqua:not(.aqua-blue):not(.aqua-green):not(.aqua-sky):not(.aqua-amber):not(.aqua-red) {
       --aqua-top: #52525b;
       --aqua-mid: #3f3f46;
       --aqua-bottom: #57575f;
@@ -185,6 +187,8 @@ body {
       --aqua-text: #e4e4e7;
       --aqua-gloss: rgb(255 255 255 / 0.22);
       --aqua-gloss-end: rgb(255 255 255 / 0.06);
+    }
+    .aqua {
       box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 0.12),
         0 1px 2px rgb(0 0 0 / 0.5);
