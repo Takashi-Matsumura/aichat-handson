@@ -180,7 +180,9 @@ export default function AnalyticsPage() {
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {/* スマホ幅（2列）では推定コストのカードだけ背が高くなるため、隣のカードを
+                行の高さに引き伸ばさない（間延びした空白を防ぐ）。広い画面では高さをそろえる */}
+            <div className="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 sm:items-stretch">
               <StatTile label="質問した回数" value={stats.requestCount.toLocaleString('ja-JP')} />
               <StatTile label="入力トークン" value={stats.inputTokens.toLocaleString('ja-JP')} />
               <StatTile label="出力トークン" value={stats.outputTokens.toLocaleString('ja-JP')} />
@@ -220,25 +222,26 @@ export default function AnalyticsPage() {
                       {m ? `利用件数 ${m.requestCount.toLocaleString('ja-JP')}件` : 'まだ利用がありません'}
                     </p>
                     {view?.note && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{view.note}</p>}
+                    {/* 見出しが2行に折れる列があっても、数字の位置は下でそろえる */}
                     <div className="mt-3 grid grid-cols-3 gap-3">
-                      <div>
+                      <div className="flex flex-col">
                         <p className="text-xs text-foreground/60">1件あたりコスト</p>
-                        <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                        <p className="mt-auto pt-0.5 text-lg font-semibold tabular-nums">
                           {m && m.requestCount > 0 ? formatJPY(m.estimatedCost / m.requestCount) : '-'}
                         </p>
                       </div>
-                      <div>
+                      <div className="flex flex-col">
                         <p className="text-xs text-foreground/60">平均レスポンス時間</p>
-                        <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                        <p className="mt-auto pt-0.5 text-lg font-semibold tabular-nums">
                           {(() => {
                             const ms = m ? averageLatencyMs(m) : null
                             return ms != null ? `${(ms / 1000).toFixed(1)}秒` : '-'
                           })()}
                         </p>
                       </div>
-                      <div>
+                      <div className="flex flex-col">
                         <p className="text-xs text-foreground/60" title="出力トークン数 ÷ 応答時間（待ち時間を含む）">生成速度</p>
-                        <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                        <p className="mt-auto pt-0.5 text-lg font-semibold tabular-nums">
                           {(() => {
                             const tps = m ? tokensPerSecond(m) : null
                             return tps != null ? `${tps.toFixed(1)} tok/s` : '-'
