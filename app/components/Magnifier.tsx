@@ -47,11 +47,7 @@ function viewportSize() {
 }
 
 const TOGGLE_BUTTON_CLASS = (on: boolean) =>
-  `w-9 h-14 flex items-center justify-center rounded-r-xl border border-l-0 transition-colors ${
-    on
-      ? 'border-ocean-400 bg-ocean-50 text-ocean-700 dark:border-ocean-500 dark:bg-ocean-900/30 dark:text-ocean-400'
-      : 'border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 opacity-60 hover:opacity-100 hover:bg-gray-100 dark:hover:bg-zinc-700'
-  }`
+  `aqua w-9 h-14 flex items-center justify-center rounded-r-2xl border-l-0 ${on ? 'aqua-blue' : 'opacity-70 hover:opacity-100'}`
 
 export default function Magnifier({ children }: { children: ReactNode }) {
   const [on, setOn] = useState(false)
@@ -257,7 +253,7 @@ export default function Magnifier({ children }: { children: ReactNode }) {
               disabled={zoom <= ZOOM_STEPS[0]}
               aria-label="縮小"
               title="縮小（-）"
-              className="px-2 py-0.5 text-xs font-bold rounded text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
+              className="aqua px-2.5 py-0.5 text-xs font-bold rounded-full select-none"
             >
               −
             </button>
@@ -270,7 +266,7 @@ export default function Magnifier({ children }: { children: ReactNode }) {
               disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
               aria-label="拡大"
               title="拡大（+）"
-              className="px-2 py-0.5 text-sm font-bold rounded text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
+              className="aqua px-2.5 py-0.5 text-sm font-bold rounded-full select-none"
             >
               ＋
             </button>

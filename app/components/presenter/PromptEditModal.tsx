@@ -85,7 +85,7 @@ export function PromptEditModal({ mode, initialTitle, initialBody, saving, error
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            className="aqua rounded-full px-4 py-1.5 text-sm font-medium"
           >
             キャンセル
           </button>
@@ -93,7 +93,7 @@ export function PromptEditModal({ mode, initialTitle, initialBody, saving, error
             type="button"
             onClick={() => onSave(title, body)}
             disabled={!title.trim() || saving}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="aqua aqua-blue rounded-full px-4 py-1.5 text-sm font-medium"
           >
             {saving ? '保存中...' : '保存'}
           </button>

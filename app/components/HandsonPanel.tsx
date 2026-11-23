@@ -115,7 +115,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
         disabled={fontSizeIndex === 0}
         aria-label="文字を小さく"
         title="文字を小さく"
-        className="px-2 py-0.5 text-xs font-bold rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
+        className="aqua px-2.5 py-0.5 text-xs font-bold rounded-full select-none"
       >
         A−
       </button>
@@ -125,7 +125,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
         disabled={fontSizeIndex === FONT_SIZES.length - 1}
         aria-label="文字を大きく"
         title="文字を大きく"
-        className="px-2 py-0.5 text-sm font-bold rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors select-none"
+        className="aqua px-2.5 py-0.5 text-sm font-bold rounded-full select-none"
       >
         A＋
       </button>
@@ -157,7 +157,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
               disabled={isFull}
               aria-label="テキストを全画面表示"
               title="全画面表示"
-              className="p-0.5 rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="aqua p-0.5 rounded-full"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                 <polygon points="16 5 16 19 6 12" />
@@ -173,7 +173,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
               disabled={!isFull}
               aria-label="テキストを画面半分に戻す"
               title="画面半分に戻す"
-              className="p-0.5 rounded text-ocean-200 hover:text-white hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="aqua p-0.5 rounded-full"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                 <polygon points="8 5 8 19 18 12" />
@@ -261,7 +261,7 @@ export default function HandsonPanel({ isOpen, isFull, onSetFull, onUsePrompt, o
                         onClick={() => onUsePrompt(text)}
                         aria-label="入力"
                         title="入力"
-                        className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded bg-ocean-700 text-white hover:bg-ocean-800 transition-colors"
+                        className="aqua aqua-blue absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full"
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

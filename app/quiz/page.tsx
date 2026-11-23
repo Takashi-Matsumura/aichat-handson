@@ -241,7 +241,7 @@ function PrimaryButton({ onClick, children }: { onClick: () => void; children: R
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl bg-ocean-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-ocean-800 transition-colors"
+      className="aqua aqua-blue rounded-full px-6 py-2.5 text-sm font-semibold"
     >
       {children}
     </button>

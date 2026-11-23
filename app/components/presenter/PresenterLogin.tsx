@@ -56,7 +56,7 @@ export function PresenterLogin({ configured }: { configured: boolean }) {
             <button
               type="submit"
               disabled={submitting || !password}
-              className="w-full rounded-lg bg-ocean-700 hover:bg-ocean-800 disabled:opacity-50 text-white text-sm font-medium py-2 transition-colors"
+              className="aqua aqua-blue w-full rounded-full text-sm font-medium py-2"
             >
               {submitting ? '確認中…' : 'ログイン'}
             </button>

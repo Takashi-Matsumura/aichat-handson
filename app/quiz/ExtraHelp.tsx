@@ -123,7 +123,7 @@ function HelpButton({ disabled, onClick, children }: { disabled: boolean; onClic
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-ocean-700 hover:border-ocean-400 hover:bg-ocean-50 disabled:pointer-events-none disabled:opacity-50 dark:border-white/15 dark:text-ocean-400 dark:hover:bg-ocean-900/30 transition-colors"
+      className="aqua rounded-full px-5 py-2 text-sm font-semibold"
     >
       {children}
     </button>

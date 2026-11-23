@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
             href="/"
             title="チャット画面に戻る"
             aria-label="チャット画面に戻る"
-            className="mt-0.5 shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            className="aqua mt-0.5 shrink-0 w-9 h-9 flex items-center justify-center rounded-full"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="19" y1="12" x2="5" y2="12" />

@@ -284,7 +284,7 @@ export function PromptBroadcastPanel() {
             type="button"
             onClick={() => importInputRef.current?.click()}
             disabled={importing}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -297,7 +297,7 @@ export function PromptBroadcastPanel() {
             type="button"
             onClick={handleExport}
             disabled={!prompts || prompts.length === 0}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -309,7 +309,7 @@ export function PromptBroadcastPanel() {
           <button
             type="button"
             onClick={() => { setEditing({ mode: 'create' }); setModalError(null) }}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-ocean-700 hover:bg-ocean-50 dark:text-ocean-400 dark:hover:bg-ocean-900/20 transition-colors"
+            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -349,7 +349,7 @@ export function PromptBroadcastPanel() {
                 type="button"
                 onClick={handleClearBroadcast}
                 disabled={clearingBroadcast}
-                className="flex-none rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="aqua flex-none rounded-full px-4 py-1.5 text-xs font-medium"
               >
                 {clearingBroadcast ? '処理中...' : '配信を取り下げる'}
               </button>
@@ -415,7 +415,7 @@ export function PromptBroadcastPanel() {
                               type="button"
                               onClick={() => handleDelete(prompt.id)}
                               disabled={isDeleting}
-                              className="rounded-lg px-2 py-1 text-[11px] font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="aqua aqua-red rounded-full px-3 py-1 text-[11px] font-medium"
                             >
                               {isDeleting ? '削除中...' : '削除する'}
                             </button>
@@ -423,7 +423,7 @@ export function PromptBroadcastPanel() {
                               type="button"
                               onClick={() => setDeleteConfirmId(null)}
                               disabled={isDeleting}
-                              className="rounded-lg px-2 py-1 text-[11px] font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                              className="aqua rounded-full px-3 py-1 text-[11px] font-medium"
                             >
                               キャンセル
                             </button>
@@ -434,7 +434,7 @@ export function PromptBroadcastPanel() {
                               type="button"
                               onClick={() => handleSend(prompt.id)}
                               disabled={isSending}
-                              className="flex-none flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="aqua aqua-blue flex-none flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-medium"
                             >
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="22" y1="2" x2="11" y2="13" />
@@ -446,7 +446,7 @@ export function PromptBroadcastPanel() {
                               type="button"
                               onClick={() => { setEditing({ mode: 'edit', prompt }); setModalError(null) }}
                               title="このプロンプトを編集"
-                              className="flex-none w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 dark:text-zinc-500 hover:text-ocean-700 hover:bg-ocean-50 dark:hover:text-ocean-400 dark:hover:bg-ocean-900/20 transition-colors"
+                              className="aqua flex-none w-7 h-7 flex items-center justify-center rounded-full"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -457,7 +457,7 @@ export function PromptBroadcastPanel() {
                               type="button"
                               onClick={() => setDeleteConfirmId(prompt.id)}
                               title="このプロンプトを削除"
-                              className="flex-none w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-zinc-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              className="aqua flex-none w-7 h-7 flex items-center justify-center rounded-full hover:text-red-600"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="3 6 5 6 21 6" />
