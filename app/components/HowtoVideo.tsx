@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import {
   DEFAULT_HOWTO_VOICE,
-  HOWTO_CHAPTERS,
+  HOWTO_VIDEOS,
   HOWTO_VOICES,
   formatDuration,
   howtoNarration,
   howtoThumb,
   howtoVideo,
+  type HowtoVideoSet,
 } from '@/lib/howto/chapters'
 
 const VOICE_STORAGE_KEY = 'howto-voice'
@@ -80,47 +81,52 @@ function useNarrationSync(videoRef: RefObject<HTMLVideoElement | null>, audioRef
   }, [videoRef, audioRef])
 }
 
-// トップページ（会話が始まる前）に出す、アプリの使い方動画の入口。押すとチャプタ付きのプレーヤーが開く。
-// 研修の外でも、操作を独学で確認できるようにするためのもの。
+// トップページ（会話が始まる前）に出す、アプリの使い方動画の入口。基本の使い方と応用編の2本を並べ、
+// 押すとその動画のチャプタ付きプレーヤーが開く。研修の外でも、操作を独学で確認できるようにするためのもの。
 export function HowtoVideoCard() {
-  const [open, setOpen] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const opened = HOWTO_VIDEOS.find((v) => v.id === openId)
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="group mt-4 w-fit mx-auto flex flex-col gap-2 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 pb-3 text-center shadow-sm hover:border-ocean-300 dark:hover:border-ocean-600 transition-colors"
-      >
-        <span className="relative block w-40 mx-auto aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-700">
-          {/* eslint-disable-next-line @next/next/no-img-element -- 静的な小さいサムネイル。最適化は不要 */}
-          <img src={howtoThumb(HOWTO_CHAPTERS[0].id)} alt="" className="w-full h-full object-cover" />
-          <span className="absolute inset-0 flex items-center justify-center bg-black/15 group-hover:bg-black/5 transition-colors">
-            <span className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center text-ocean-700">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
-                <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" />
-              </svg>
+      <div className="mt-4 mx-auto flex flex-wrap justify-center gap-3">
+        {HOWTO_VIDEOS.map((set) => (
+          <button
+            key={set.id}
+            type="button"
+            onClick={() => setOpenId(set.id)}
+            className="group w-fit flex flex-col gap-2 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 pb-3 text-center shadow-sm hover:border-ocean-300 dark:hover:border-ocean-600 transition-colors"
+          >
+            <span className="relative block w-40 mx-auto aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-700">
+              {/* eslint-disable-next-line @next/next/no-img-element -- 静的な小さいサムネイル。最適化は不要 */}
+              <img src={howtoThumb(set.chapters[0].id)} alt="" className="w-full h-full object-cover" />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/15 group-hover:bg-black/5 transition-colors">
+                <span className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center text-ocean-700">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
+                    <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" />
+                  </svg>
+                </span>
+              </span>
             </span>
-          </span>
-        </span>
-        <span className="block px-2">
-          <span className="block text-sm font-semibold text-gray-800 dark:text-zinc-100">はじめての方へ：使い方の動画</span>
-          <span className="block mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
-            見たいところから再生できます
-          </span>
-        </span>
-      </button>
-      {open && <HowtoVideoModal onClose={() => setOpen(false)} />}
+            <span className="block px-2">
+              <span className="block text-sm font-semibold text-gray-800 dark:text-zinc-100">{set.card}</span>
+              <span className="block mt-0.5 text-xs text-gray-400 dark:text-zinc-500">{set.cardSub}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {opened && <HowtoVideoModal set={opened} onClose={() => setOpenId(null)} />}
     </>
   )
 }
 
-function HowtoVideoModal({ onClose }: { onClose: () => void }) {
+function HowtoVideoModal({ set, onClose }: { set: HowtoVideoSet; onClose: () => void }) {
   const [current, setCurrent] = useState(0)
   const [voiceId, setVoiceId] = useState(loadVoiceId)
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const listRef = useRef<HTMLOListElement>(null)
-  const chapter = HOWTO_CHAPTERS[current]
+  const chapters = set.chapters
+  const chapter = chapters[current]
   const voice = HOWTO_VOICES.find((v) => v.id === voiceId) ?? DEFAULT_HOWTO_VOICE
   useNarrationSync(videoRef, audioRef)
 
@@ -163,7 +169,7 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="使い方の動画"
+      aria-label={set.title}
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
@@ -173,7 +179,7 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
       >
         <div className="flex-none flex items-center justify-between gap-3 px-5 py-3 bg-ocean-700 dark:bg-ocean-900">
           <h2 className="text-sm font-semibold text-white truncate">
-            使い方の動画　<span className="font-normal text-ocean-100">チャプタ{current + 1}：{chapter.title}</span>
+            {set.title}　<span className="font-normal text-ocean-100">チャプタ{current + 1}：{chapter.title}</span>
           </h2>
           <button
             type="button"
@@ -199,7 +205,7 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
               playsInline
               preload="metadata"
               onEnded={() => {
-                if (current < HOWTO_CHAPTERS.length - 1) setCurrent(current + 1)
+                if (current < chapters.length - 1) setCurrent(current + 1)
               }}
               className="w-full aspect-video"
             />
@@ -211,7 +217,7 @@ function HowtoVideoModal({ onClose }: { onClose: () => void }) {
           <div className="flex-none lg:w-72 lg:relative">
           <div className="flex flex-col lg:absolute lg:inset-0">
           <ol ref={listRef} className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto p-2 space-y-1">
-            {HOWTO_CHAPTERS.map((c, i) => (
+            {chapters.map((c, i) => (
               <li key={c.id}>
                 <button
                   type="button"

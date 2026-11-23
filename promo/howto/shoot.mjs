@@ -1,8 +1,11 @@
 /**
- * アプリの使い方動画の撮影（チャプタごと）。
+ * アプリの使い方動画の撮影（チャプタごと）。基本の使い方は ch1〜ch6、応用編は web（Web検索）と rag（社内資料）。
  *
  *   node promo/howto/shoot.mjs           # 全チャプタ
- *   node promo/howto/shoot.mjs ch3 ch5   # 指定したチャプタだけ
+ *   node promo/howto/shoot.mjs ch3 rag   # 指定したチャプタだけ
+ *
+ * rag は knowledge/ に資料が登録済みで、埋め込みサーバが動いていること（RAG ボタンが押せる状態）。
+ * 質問は、架空の会社の経費精算規程（締切は毎月7日）が入っている前提。
  *
  * 撮った素材は promo/out/howto/<id>/。字幕と合成は build.mjs。
  */
@@ -33,7 +36,8 @@ const SCENES = {
       ["quiz", page.getByRole("link", { name: "確認テスト" })],
       ["stats", page.getByRole("link", { name: "AI利用状況ダッシュボード" })],
       ["note", page.getByText("AI の回答は参考情報です")],
-      ["howto", page.getByRole("button", { name: /使い方の動画/ })],
+      // 入口は基本の使い方と応用編の2枚。並んだカードをまとめて囲む。
+      ["howto", page.getByRole("button", { name: /使い方の動画/ }).locator("..")],
     ];
     for (const [name, loc] of steps) {
       await spotlight(page, loc);
@@ -261,11 +265,11 @@ const SCENES = {
     await finish("ch5", browser, rec, page);
   },
 
-  /** 6. Web検索（SearXNG でインターネットを調べてから答える）。 */
-  async ch6() {
-    const { browser, page, rec } = await begin("ch6");
+  /** 応用編 1. Web検索（SearXNG でインターネットを調べてから答える）。 */
+  async web() {
+    const { browser, page, rec } = await begin("web");
     await pause(page, 4000);
-    const web = page.getByRole("button", { name: "Web検索" });
+    const web = page.getByRole("button", { name: "Web検索", exact: true });
     await spotlight(page, web);
     rec.mark("toggle-point");
     await pause(page, 3500);
@@ -322,12 +326,88 @@ const SCENES = {
     await moveAndClick(page, web);
     rec.mark("off");
     await pause(page, 3000);
-    await finish("ch6", browser, rec, page);
+    await finish("web", browser, rec, page);
   },
 
-  /** 7. 新しく始める・確認テスト。 */
-  async ch7() {
-    const { browser, page, rec } = await begin("ch7");
+  /** 応用編 2. 社内資料を検索（RAG）。同じ質問を RAG オフ → オンで聞き比べる。 */
+  async rag() {
+    // gemma-3-4b は資料を渡しても「記載がありません」と読み落とすことがあるため、モデル 1 で撮る。
+    const { browser, page, rec } = await begin("rag", { model: 1 });
+    await pause(page, 4000);
+    const question = "経費精算の締切は、毎月何日ですか？";
+    // まずは RAG オフのまま聞く（AI は社内の決まりを知らないので、一般論でしか答えられない）。
+    await typeInto(page, question);
+    rec.mark("typed");
+    await pause(page, 1200);
+    await moveAndClick(page, page.getByRole("button", { name: "送信" }));
+    rec.mark("sent");
+    const stop = page.getByRole("button", { name: "生成を停止" });
+    await page.waitForFunction(() => document.querySelectorAll(".animate-bounce").length === 0, null, {
+      timeout: 300_000,
+      polling: 200,
+    });
+    rec.mark("streaming");
+    await stop.waitFor({ state: "detached", timeout: 300_000 }).catch(() => {});
+    rec.mark("answered");
+    await pause(page, 1000);
+    await review(page, rec);
+
+    // 前の答えに引きずられないよう、新しいチャットにしてから RAG をオンにする。
+    await moveAndClick(page, page.getByTitle("新規チャット", { exact: true }));
+    rec.mark("cleared");
+    await pause(page, 1500);
+    const rag = page.getByRole("button", { name: /^RAG/ });
+    await spotlight(page, rag);
+    rec.mark("toggle-point");
+    await pause(page, 3500);
+    await unspot(page);
+    await moveAndClick(page, rag);
+    rec.mark("on");
+    await pause(page, 2000);
+    await typeInto(page, question);
+    rec.mark("typed2");
+    await pause(page, 1200);
+    await moveAndClick(page, page.getByRole("button", { name: "送信" }));
+    rec.mark("sent2");
+    await page.waitForFunction(() => document.querySelectorAll(".animate-bounce").length === 0, null, {
+      timeout: 300_000,
+      polling: 200,
+    });
+    rec.mark("streaming2");
+    await stop.waitFor({ state: "detached", timeout: 300_000 }).catch(() => {});
+    rec.mark("answered2");
+    await pause(page, 1000);
+    await review(page, rec, { prefix: "2-" });
+
+    // 答えの下の「参照した資料」を開いて、どの資料のどこを使ったかを見せる。
+    const sources = page.getByRole("button", { name: /参照した資料/ }).last();
+    await spotlight(page, sources);
+    rec.mark("sources-point");
+    await pause(page, 3500);
+    await unspot(page);
+    await moveAndClick(page, sources);
+    await pause(page, 500);
+    await page
+      .locator("div.flex-1.overflow-y-auto")
+      .first()
+      .evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }));
+    rec.mark("sources");
+    await pause(page, 8000);
+    rec.mark("admin");
+    await pause(page, 7000);
+    await spotlight(page, rag);
+    rec.mark("off-point");
+    await pause(page, 1500);
+    await unspot(page);
+    await moveAndClick(page, rag);
+    rec.mark("off");
+    await pause(page, 3000);
+    await finish("rag", browser, rec, page);
+  },
+
+  /** 6. 新しく始める・確認テスト。 */
+  async ch6() {
+    const { browser, page, rec } = await begin("ch6");
     await pause(page, 1000);
     await typeInto(page, "こんにちは！ひとことで自己紹介してください。");
     await pause(page, 600);
@@ -367,7 +447,7 @@ const SCENES = {
     await page.evaluate(() => window.scrollBy({ top: 360, behavior: "smooth" }));
     await pause(page, 6500);
     rec.mark("done");
-    await finish("ch7", browser, rec, page);
+    await finish("ch6", browser, rec, page);
   },
 };
 
