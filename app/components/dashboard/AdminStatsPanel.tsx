@@ -74,7 +74,8 @@ export function AdminStatsPanel() {
         期間: {formatDate(data.from)} 〜 {formatDate(data.to)} ・ ログインは無く、接続セッション単位で匿名集計しています
       </p>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {/* スマホ幅（2列）では推定コストのカードだけ背が高くなるため、隣のカードを引き伸ばさない */}
+      <div className="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 sm:items-stretch lg:grid-cols-4">
         <StatTile label="利用件数" value={summary.requestCount.toLocaleString('ja-JP')} />
         <StatTile label="アクティブ利用セッション数" value={summary.activeUserCount.toLocaleString('ja-JP')} />
         <StatTile label="入力トークン" value={summary.inputTokens.toLocaleString('ja-JP')} />
