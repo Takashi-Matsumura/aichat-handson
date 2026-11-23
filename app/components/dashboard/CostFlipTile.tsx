@@ -26,20 +26,29 @@ export function CostFlipTile({ label, value, hint, exchangeRate, prices }: Props
       className="block w-full text-left [perspective:1000px]"
     >
       <div
-        className="relative transition-transform duration-500 ease-in-out [transform-style:preserve-3d]"
+        className="grid transition-transform duration-500 ease-in-out [transform-style:preserve-3d]"
         style={{ transform: flipped ? 'rotateY(180deg)' : undefined }}
       >
+        {/* 表と裏は同じグリッドのマスに重ねる。カードの高さは内容の多いほうに揃うので、
+            狭い幅で裏面の単価一覧が折り返しても、はみ出さない */}
         {/* 表面 */}
-        <div className="rounded-xl border border-black/10 p-4 dark:border-white/15 [backface-visibility:hidden]">
+        <div className="aqua-card rounded-xl p-4 [grid-area:1/1] [backface-visibility:hidden]">
           <p className="text-xs text-foreground/60">{label}</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
           {hint && <p className="mt-1 text-xs text-foreground/50">{hint}</p>}
-          <p className="mt-2 text-[11px] text-foreground/40">クリックで単価を表示</p>
+          {/* カード全体がボタンなので、ここは見た目だけのカプセル（span）。押せることが分かる目印にする */}
+          <span className="aqua mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px]">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            単価を表示
+          </span>
         </div>
 
         {/* 裏面: 円換算の元になっている単価と為替レート */}
         <div
-          className="absolute inset-0 rounded-xl border border-black/10 p-4 dark:border-white/15 [backface-visibility:hidden]"
+          className="aqua-card rounded-xl p-4 [grid-area:1/1] [backface-visibility:hidden]"
           style={{ transform: 'rotateY(180deg)' }}
         >
           <p className="text-xs text-foreground/60">単価（100万トークンあたり）</p>
@@ -52,8 +61,15 @@ export function CostFlipTile({ label, value, hint, exchangeRate, prices }: Props
             ))}
           </ul>
           <p className="mt-2 text-[11px] text-foreground/40">
-            為替レート $1 ≈ ¥{exchangeRate}（教材用の参考値） ・ クリックで戻る
+            為替レート $1 ≈ ¥{exchangeRate}（教材用の参考値）
           </p>
+          <span className="aqua mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px]">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            戻る
+          </span>
         </div>
       </div>
     </button>
