@@ -1,6 +1,19 @@
 'use client'
 
+import { useSyncExternalStore } from 'react'
 import type { FormEvent, Ref } from 'react'
+
+// スマホ幅（Tailwind の sm 未満）かどうか。入力欄の案内文を切り替えるのに使う。
+// サーバー描画時は判定できないため広い画面扱い（長い案内文）にし、表示後に実際の幅で切り替える。
+const NARROW_QUERY = '(max-width: 639.98px)'
+function subscribeNarrow(onChange: () => void) {
+  const mql = window.matchMedia(NARROW_QUERY)
+  mql.addEventListener('change', onChange)
+  return () => mql.removeEventListener('change', onChange)
+}
+function useIsNarrow() {
+  return useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW_QUERY).matches, () => false)
+}
 
 type Props = {
   // 会話がまだ始まっていない(入力欄を画面中央に大きく出す)
@@ -49,6 +62,8 @@ export function ChatComposer({
   thinking,
   onToggleThinking,
 }: Props) {
+  const isNarrow = useIsNarrow()
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
@@ -178,7 +193,9 @@ export function ChatComposer({
           value={input}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="メッセージを入力（Enterで送信、Shift+Enterで改行）"
+          // スマホ幅では入力欄が狭く、長い案内文が何行にも折り返して欄の背が高くなる
+          // （ハンズオンパネルを開くと下がパネルに隠れる）ため、1行に収まる短い文にする
+          placeholder={isNarrow ? 'ここに入力' : 'メッセージを入力（Enterで送信、Shift+Enterで改行）'}
           rows={1}
           disabled={loading}
           className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 px-4 py-2.5 text-base md:text-sm text-gray-800 dark:text-zinc-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ocean-400 disabled:opacity-50 max-h-32 overflow-y-auto"
