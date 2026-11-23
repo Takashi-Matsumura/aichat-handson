@@ -19,7 +19,7 @@ export const HOWTO_VIDEOS: HowtoVideoSet[] = [
       { id: 'ch3', title: '答えを確かめる', summary: '再生成・見比べ・トークン', duration: 51.6 },
       { id: 'ch4', title: 'テキストを見ながら進める', summary: 'テキストの開き方と［入力］ボタン', duration: 72.4 },
       { id: 'ch5', title: '推論モード', summary: 'AIに考えてから答えてもらう', duration: 49.3 },
-      { id: 'ch6', title: '新しく始める・確認テスト', summary: '新規チャットと4択テスト', duration: 52.0 },
+      { id: 'ch6', title: '新しく始める・確認テスト', summary: '新規チャットと4択テスト', duration: 61.8 },
     ],
   },
   {
@@ -30,7 +30,7 @@ export const HOWTO_VIDEOS: HowtoVideoSet[] = [
     chapters: [
       { id: 'web', title: 'Web検索', summary: 'インターネットで調べてから答えてもらう', duration: 101.2 },
       { id: 'rag', title: '社内資料を検索（RAG）', summary: '登録された資料をもとに答えてもらう', duration: 88.0 },
-      { id: 'usage', title: 'AI利用状況の見かた', summary: '回数・トークン・コストを数字で確かめる', duration: 119.3 },
+      { id: 'usage', title: 'AI利用状況の見かた', summary: '回数・トークン・コストを数字で確かめる', duration: 128.7 },
     ],
   },
 ]

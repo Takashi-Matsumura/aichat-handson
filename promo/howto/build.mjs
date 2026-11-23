@@ -20,7 +20,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { renderClip, renderPngs, retimer } from "../lib/render.mjs";
+import { renderCard, renderClip, renderPngs, retimer } from "../lib/render.mjs";
 
 const out = new URL("../out/howto/", import.meta.url).pathname;
 const png = `${out}png/`;
@@ -59,6 +59,27 @@ function caption({ step, title, text }) {
     </div>
   </div></body></html>`;
 }
+
+/**
+ * 動画（基本の使い方・応用編）の最後に出す締めのカード。アプリの画面ではなく全画面の画で、
+ * 受講者にこれからの AI 活用を呼びかけて終わる。lead は小見出し、text は大きく出す一言、sub は添える一文。
+ */
+function outroCard({ lead, text, sub }) {
+  return `<!doctype html><html><body style="margin:0;width:${W}px;height:${H}px;overflow:hidden;font-family:${FONT};
+    background:linear-gradient(135deg,${BLUE.deep} 0%,${BLUE.mid} 55%,${BLUE.light} 100%);color:#fff">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:44px">
+    <div style="font-size:44px;font-weight:600;opacity:.9;letter-spacing:2px">${lead}</div>
+    <div style="font-size:104px;font-weight:800;letter-spacing:4px;white-space:nowrap">${text}</div>
+    <div style="font-size:46px;font-weight:600;opacity:.95;white-space:nowrap">${sub}</div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:64px;text-align:center;font-size:34px;font-weight:700;letter-spacing:6px;opacity:.75">AIチャット ハンズオン</div>
+  </body></html>`;
+}
+
+/** 締めのカードの最短の長さ（秒）と、読み上げの前後に空ける間（秒）。 */
+const OUTRO_MIN = 5;
+const OUTRO_LEAD_IN = 0.6;
+const OUTRO_TAIL = 1.4;
 
 const HOLD = 2.5;
 /** AI の応答待ち（1 文字目が出るまで）は縮める。 */
@@ -281,6 +302,13 @@ const CHAPTERS = [
       { at: "end", title: "聞き方しだいで、トークンもコストも変わる", text: "短く的確に聞くのが、賢い使い方",
         say: "聞き方しだいで、トークンもコストも変わります。短く、的確に聞くのが、賢いAIの使い方です。" },
     ],
+    // 応用編の最後のチャプタなので、締めのカードを付ける。
+    outro: {
+      lead: "応用編は、ここまでです",
+      text: "AIの活用を、ここから広げよう",
+      sub: "調べる・確かめる・振り返るで、AIを賢く使いこなそう",
+      say: "応用編は、ここまでです。このアプリから、みなさんのAI活用が広がっていくことを願っています。",
+    },
   },
   {
     id: "ch6",
@@ -305,6 +333,13 @@ const CHAPTERS = [
       { at: "done", title: "結果はこのブラウザにだけ記録されます", text: "何度でも挑戦しよう",
         say: "結果は、このブラウザにだけ記録されます。何度でも挑戦してみましょう。" },
     ],
+    // 基本の使い方の最後のチャプタなので、締めのカードを付ける。
+    outro: {
+      lead: "使い方の動画は、ここまでです",
+      text: "AIの活用を、ここから広げよう",
+      sub: "試して、確かめて、毎日の仕事に活かしていこう",
+      say: "使い方の動画は、ここまでです。このアプリから、みなさんのAI活用が広がっていくことを願っています。",
+    },
   },
 ];
 
@@ -419,7 +454,25 @@ for (const c of targets) {
   if (NARRATION) retime.push(...(await narrationPauses(c, marks, duration, retime)));
   const fitTo = retimer(marks, duration, retime)(duration) + HOLD;
   const clip = `${clips}${c.id}.mp4`;
-  const { total, captions: spans } = renderClip(dir, clip, { retime, captions: c.captions, fitTo });
+  const rendered = renderClip(dir, c.outro ? `${clips}${c.id}-body.mp4` : clip, { retime, captions: c.captions, fitTo });
+  const spans = rendered.captions;
+  let total = rendered.total;
+
+  // 締めのカード。読み上げがいちばん長い声でも収まる長さにして、本編のうしろにつなぐ。
+  let outroAt = null;
+  if (c.outro) {
+    let longest = 0;
+    if (NARRATION) for (const v of VOICES) longest = Math.max(longest, (await synthesize(c.outro.say, v.speaker)).seconds);
+    const length = Math.max(OUTRO_MIN, OUTRO_LEAD_IN + longest + OUTRO_TAIL);
+    const cardPng = `${png}${c.id}-outro.png`;
+    await renderPngs([{ html: outroCard(c.outro), file: cardPng }]);
+    renderCard([{ png: cardPng, at: 0 }], `${clips}${c.id}-outro.mp4`, length.toFixed(3));
+    const list = `${clips}${c.id}.txt`;
+    writeFileSync(list, [`${clips}${c.id}-body.mp4`, `${clips}${c.id}-outro.mp4`].map((f) => `file '${f}'`).join("\n"));
+    execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", list, "-c", "copy", clip]);
+    outroAt = total + OUTRO_LEAD_IN;
+    total += length;
+  }
 
   // 字幕ごとの読み上げ文（say）を、声ごとに読み上げる。表示時間は narrationPauses で読み上げに
   // 合わせて延ばしてあるので、ふつうは標準の速さで収まる。万一収まらない文は、その文だけ速めて
@@ -443,6 +496,7 @@ for (const c of targets) {
           );
         lines.push({ file, from: spans[i].from });
       }
+      if (outroAt !== null) lines.push({ file: (await synthesize(c.outro.say, v.speaker)).file, from: outroAt });
       writeNarration(lines, total, `${pub}${c.id}.${v.id}.m4a`);
     }
   }
