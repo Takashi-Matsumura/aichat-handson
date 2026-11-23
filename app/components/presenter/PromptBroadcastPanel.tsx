@@ -272,7 +272,8 @@ export function PromptBroadcastPanel() {
         <span className="text-xs text-gray-400 dark:text-zinc-500">
           プロンプト一覧{prompts !== null && `（${prompts.length}件）`}
         </span>
-        <div className="flex items-center gap-1">
+        {/* スマホ幅ではボタンの中で文字を折り返さず、入り切らないボタンは次の行へ回す */}
+        <div className="flex flex-wrap items-center gap-1">
           <input
             ref={importInputRef}
             type="file"
@@ -284,7 +285,7 @@ export function PromptBroadcastPanel() {
             type="button"
             onClick={() => importInputRef.current?.click()}
             disabled={importing}
-            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+            className="aqua flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -297,7 +298,7 @@ export function PromptBroadcastPanel() {
             type="button"
             onClick={handleExport}
             disabled={!prompts || prompts.length === 0}
-            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+            className="aqua flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -309,7 +310,7 @@ export function PromptBroadcastPanel() {
           <button
             type="button"
             onClick={() => { setEditing({ mode: 'create' }); setModalError(null) }}
-            className="aqua flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+            className="aqua flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -368,9 +369,11 @@ export function PromptBroadcastPanel() {
             まだプロンプトがありません。「新しいプロンプトを追加」から作成してください。
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
+          // スマホ幅では表を横スクロールさせず、1行を「タイトル＋操作ボタン／本文＋状態」の
+          // カードとして並べる（操作ボタンが画面外に隠れないようにする）。sm 以上は従来の表
+          <div className="sm:overflow-x-auto">
+            <table className="block sm:table w-full text-left text-sm">
+              <thead className="hidden sm:table-header-group">
                 <tr className="border-b border-gray-200 dark:border-zinc-700 text-xs text-gray-400 dark:text-zinc-500">
                   <th className="px-4 py-2 font-medium">タイトル</th>
                   <th className="px-4 py-2 font-medium">本文</th>
@@ -378,7 +381,7 @@ export function PromptBroadcastPanel() {
                   <th className="px-4 py-2 font-medium text-right">操作</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block sm:table-row-group">
                 {prompts.map(prompt => {
                   const isSending = sendingId === prompt.id
                   const isConfirmingDelete = deleteConfirmId === prompt.id
@@ -388,9 +391,9 @@ export function PromptBroadcastPanel() {
                   return (
                     <tr
                       key={prompt.id}
-                      className="border-b border-gray-100 last:border-0 dark:border-zinc-700/60 hover:bg-gray-50 dark:hover:bg-zinc-700/40 transition-colors"
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-4 py-2.5 sm:table-row sm:p-0 border-b border-gray-100 last:border-0 dark:border-zinc-700/60 hover:bg-gray-50 dark:hover:bg-zinc-700/40 transition-colors"
                     >
-                      <td className="px-4 py-2.5 max-w-[16rem]">
+                      <td className="col-start-1 row-start-1 block min-w-0 sm:table-cell sm:px-4 sm:py-2.5 sm:max-w-[16rem]">
                         <span className="flex items-center gap-2 min-w-0">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none text-gray-400 dark:text-zinc-500">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -399,15 +402,15 @@ export function PromptBroadcastPanel() {
                           <span className="min-w-0 truncate text-gray-700 dark:text-zinc-200">{prompt.title}</span>
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 max-w-[20rem] text-xs text-gray-400 dark:text-zinc-500">
+                      <td className="col-start-1 row-start-2 block min-w-0 pl-[22px] sm:table-cell sm:px-4 sm:py-2.5 sm:max-w-[20rem] text-xs text-gray-400 dark:text-zinc-500">
                         <span className="block truncate" title={bodyPreview}>{bodyPreview}</span>
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="col-start-2 row-start-2 block text-right sm:table-cell sm:text-left sm:px-4 sm:py-2.5">
                         {isLive && (
                           <span className="text-[11px] text-emerald-600 dark:text-emerald-400">配信中</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <td className="col-start-2 row-start-1 block text-right whitespace-nowrap sm:table-cell sm:px-4 sm:py-2.5">
                         {isConfirmingDelete ? (
                           <div className="flex items-center justify-end gap-1.5">
                             <span className="text-[11px] text-red-500 dark:text-red-400">削除しますか？</span>
