@@ -93,7 +93,7 @@ export function ChatComposer({
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          Web検索ON：質問から作った検索キーワードがインターネットの検索エンジンへ送られます。個人情報や社外秘は入力しないでください。
+          Web検索ON：検索キーワードが外部に送られます。個人情報・社外秘は入力しないでください。
         </p>
       )}
       <div className="flex items-end gap-2">

@@ -14,4 +14,7 @@ export const HANDSON_PAGES: HandsonPage[] = [
   // Web検索トグルが押せない環境(SEARXNG_URL 未設定・SearXNG 停止中)では演習ができないため、
   // その場合はこの行をコメントアウトして非表示にする。
   { id: 5, title: 'AIとWeb検索', file: '/handson/handson5.md' },
+  // 演習は samples/knowledge/ の架空の会社の資料を knowledge/ に置いた前提（RAGトグルが押せること）。
+  // 資料を登録しない環境では、この行をコメントアウトして非表示にする。
+  { id: 6, title: 'AIと社内資料（RAG）', file: '/handson/handson6.md' },
 ]
