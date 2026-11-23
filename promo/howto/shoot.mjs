@@ -249,8 +249,12 @@ const SCENES = {
     const stop = page.getByRole("button", { name: "生成を停止" });
     await stop.waitFor({ state: "detached", timeout: 300_000 }).catch(() => {});
     rec.mark("answered");
-    await pause(page, 3500);
+    await pause(page, 2000);
     const proc = page.getByText("思考プロセス").last();
+    // 答えが出た後も思考プロセスが開いたままのことがある。字幕は「押すと開く」なので、先に閉じておく。
+    const body = page.locator("div.border-amber-200 > div.border-t").last();
+    if (await body.isVisible().catch(() => false)) await moveAndClick(page, proc);
+    await pause(page, 1500);
     await spotlight(page, proc.locator(".."));
     rec.mark("proc-point");
     await pause(page, 2500);
