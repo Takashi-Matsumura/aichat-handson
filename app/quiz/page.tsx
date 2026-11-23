@@ -307,10 +307,11 @@ function QuestionCard({
   return (
     <div className="flex flex-col gap-5 rounded-xl border border-black/10 p-6 dark:border-white/15">
       <div className="flex items-center justify-between gap-3 text-xs text-foreground/50">
-        <span className="font-semibold text-ocean-700 dark:text-ocean-400 tabular-nums">
+        {/* 番号は折り返さず縮めない（スマホ幅では章名のほうを折り返す） */}
+        <span className="shrink-0 whitespace-nowrap font-semibold text-ocean-700 dark:text-ocean-400 tabular-nums">
           第{index + 1}問 / {total}
         </span>
-        <span>
+        <span className="min-w-0">
           {item.pageTitle}　{item.chapter}
         </span>
       </div>
