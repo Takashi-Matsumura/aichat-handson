@@ -75,18 +75,20 @@ export default function PromptBroadcastModal({ isOpen, title, body, onClose, onU
           </pre>
         </div>
 
-        <div className="flex-none flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 dark:border-zinc-700">
+        {/* スマホ幅でボタン内の文字が「閉じ／る」のように折れないよう、文字は折り返さず余白を詰める。
+            それでも入り切らない場合はボタンごと次の行へ回す */}
+        <div className="flex-none flex flex-wrap items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 dark:border-zinc-700">
           <button
             type="button"
             onClick={onClose}
-            className="aqua rounded-full px-4 py-1.5 text-sm font-medium"
+            className="aqua whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 text-sm font-medium"
           >
             閉じる
           </button>
           <button
             type="button"
             onClick={copyBody}
-            className={`aqua flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium ${copied ? 'aqua-green' : ''}`}
+            className={`aqua flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 text-sm font-medium ${copied ? 'aqua-green' : ''}`}
           >
             {copied ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -103,7 +105,7 @@ export default function PromptBroadcastModal({ isOpen, title, body, onClose, onU
           <button
             type="button"
             onClick={() => { onUsePrompt(body); onClose() }}
-            className="aqua aqua-blue rounded-full px-4 py-1.5 text-sm font-medium"
+            className="aqua aqua-blue whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 text-sm font-medium"
           >
             入力欄に入れる
           </button>
