@@ -57,12 +57,14 @@ export default function PromptBroadcastModal({ isOpen, title, body, onClose, onU
             type="button"
             onClick={onClose}
             aria-label="閉じる"
-            className="flex-none w-7 h-7 flex items-center justify-center rounded-lg text-ocean-200 hover:text-white hover:bg-white/20 transition-colors"
+            className="aqua-close flex-none w-7 h-7"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <span className="aqua-close-dot">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </span>
           </button>
         </div>
 

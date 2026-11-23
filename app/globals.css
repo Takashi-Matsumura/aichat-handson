@@ -157,6 +157,48 @@ body {
   }
 }
 
+/* Mac の赤い閉じるボタン風（モーダル右上の ×）
+   押せる範囲はボタン本体（w-7 h-7 など）で確保し、見た目は中の .aqua-close-dot の赤い丸。
+   × は普段うっすら、ホバー・フォーカスではっきり出す（Mac は普段非表示だが、初めての人にも閉じるボタンと分かるように）。 */
+@layer components {
+  .aqua-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+  }
+  .aqua-close:focus-visible {
+    outline: 2px solid rgb(255 255 255 / 0.8);
+    outline-offset: 1px;
+  }
+  .aqua-close-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #7a1209;
+    border: 1px solid #c8322b;
+    background:
+      radial-gradient(circle at 50% 28%, rgb(255 255 255 / 0.75) 0%, rgb(255 255 255 / 0.15) 38%, transparent 42%),
+      radial-gradient(circle at 50% 100%, #ff9a8f 0%, #ff5f57 45%, #e2463f 100%);
+    box-shadow: 0 1px 1px rgb(0 0 0 / 0.25), inset 0 -1px 1px rgb(255 255 255 / 0.3);
+    transition: filter 0.15s;
+  }
+  .aqua-close-dot svg {
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .aqua-close:hover .aqua-close-dot svg,
+  .aqua-close:focus-visible .aqua-close-dot svg {
+    opacity: 1;
+  }
+  .aqua-close:active .aqua-close-dot {
+    filter: brightness(0.85);
+  }
+}
+
 /* Aqua 風プログレスバー
    - .aqua-track : くぼんだ溝
    - .aqua-bar   : 光沢のあるジェル（既定は青。.aqua-amber / .aqua-red などを重ねると色が変わる）
