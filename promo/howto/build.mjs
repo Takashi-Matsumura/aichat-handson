@@ -4,7 +4,7 @@
  *   node promo/howto/build.mjs            # 全チャプタ
  *   node promo/howto/build.mjs ch3 rag    # 指定したチャプタだけ
  *
- * 基本の使い方は ch1〜ch6、応用編は web（Web検索）・rag（社内資料）・usage（AI利用状況）。どちらの動画に入るかは
+ * 基本の使い方は ch1〜ch6、応用編は web（Web検索）・rag（社内資料）・usage（AI利用状況）・rally（ラリー）。どちらの動画に入るかは
  * lib/howto/chapters.ts の HOWTO_VIDEOS で決める。
  *
  * 先に shoot.mjs で撮っておく。字幕だけを直すなら、撮り直さずにこれだけを流せばよい。
@@ -112,7 +112,7 @@ const CHAPTERS = [
       { at: "note", step: "大切なこと", title: "AIの回答は参考情報", text: "最後は、自分の目で確かめよう",
         say: "AIの回答は、あくまで参考情報です。最後は、自分の目で確かめましょう。" },
       { at: "howto", step: "使い方の動画", title: "この動画と応用編は、ここからいつでも見られます", text: "見たいチャプタを選んで再生できます",
-        say: "この使い方の動画は、ここからいつでも見られます。となりの応用編では、ウェブ検索と、社内資料を使う方法、それにAIの利用状況の見かたを紹介しています。" },
+        say: "この使い方の動画は、ここからいつでも見られます。となりの応用編では、ウェブ検索と、社内資料を使う方法、AIの利用状況の見かた、それに、AIと会話を往復させて考えるラリーを紹介しています。" },
     ],
   },
   {
@@ -302,11 +302,47 @@ const CHAPTERS = [
       { at: "end", title: "聞き方しだいで、トークンもコストも変わる", text: "短く的確に聞くのが、賢い使い方",
         say: "聞き方しだいで、トークンもコストも変わります。短く、的確に聞くのが、賢いAIの使い方です。" },
     ],
+  },
+  {
+    id: "rally",
+    thumb: "hint",
+    retime: [
+      wait(),
+      { from: "streaming", to: "answered", as: 4 },
+      wait("2-sent", "2-streaming"),
+      { from: "2-streaming", to: "2-answered", as: 4 },
+      wait("3-sent", "3-streaming"),
+      { from: "3-streaming", to: "3-answered", as: 4 },
+    ],
+    captions: [
+      { at: 0, step: "応用編 4", title: "ラリー", text: "AIと会話を往復させて、自分で答えにたどり着く",
+        say: "応用編、チャプタ4、ラリー。AIに答えを全部書いてもらうと、読んで終わりになりがちです。ラリーは、AIと会話を往復させながら、自分で考えて答えにたどり着くための機能です。" },
+      { at: "toggle-point", step: "ラリー", title: "往復する矢印のボタン", text: "押すと、ラリーモードがオンになります",
+        say: "入力欄の横にある、往復する矢印のボタンを押すと、ラリーモードがオンになります。" },
+      { at: "notice", step: "ラリーモード", title: "AIはすぐに答えを出しません", text: "短く答えて、あなたに質問を返します",
+        say: "オンの間、AIはすぐに答えを出しません。短く答えて、あなたに質問を返します。" },
+      { at: "typed", title: "仕事の悩みを", text: "相談してみます",
+        say: "仕事の悩みを、相談してみます。" },
+      { at: "badge", step: "目印", title: "ラリーモードの答えには", text: "「ラリー」の目印が付きます",
+        say: "ラリーモードの答えには、ラリーの目印が付きます。" },
+      { at: "question", step: "問い返し", title: "答えを並べる代わりに", text: "まず、あなたの考えを聞いてきます",
+        say: "答えを並べる代わりに、まず、あなたがどう考えているかを聞いてきます。" },
+      { at: "typed2", title: "質問に", text: "自分の考えを言葉にして返します",
+        say: "質問に、自分の考えを言葉にして返します。" },
+      { at: "hint", step: "ヒント", title: "あなたの考えをもとに", text: "次に考える方向を、質問の形で示します",
+        say: "AIは、あなたの考えをもとに、次に考える方向を、質問の形で示します。このやり取りを重ねて、答えに近づいていきます。" },
+      { at: "typed3", title: "急いでいるときは", text: "「答えを教えて」と頼めます",
+        say: "急いでいるときは、答えを教えて、と頼むこともできます。" },
+      { at: "answer", step: "答え合わせ", title: "結論を示したあとに", text: "自分の言葉で説明できるか、確かめてくれます",
+        say: "AIは結論を示したあとに、なぜそうなるのかを、自分の言葉で説明できるか、確かめてくれます。" },
+      { at: "off-point", title: "調べものはふだんのモード、考えを深めたいときはラリー", text: "AIを、考える力を育てる相棒に",
+        say: "調べものや文章づくりは、ふだんのモードで。自分の考えを深めたいときは、ラリーをオンにして、AIを、考える力を育てる相棒にしましょう。" },
+    ],
     // 応用編の最後のチャプタなので、締めのカードを付ける。
     outro: {
       lead: "応用編は、ここまでです",
       text: "AIの活用を、ここから広げよう",
-      sub: "調べる・確かめる・振り返るで、AIを賢く使いこなそう",
+      sub: "調べる・確かめる・考えるで、AIを成長の相棒に",
       say: "応用編は、ここまでです。このアプリから、みなさんのAI活用が広がっていくことを願っています。",
     },
   },
@@ -466,7 +502,9 @@ for (const c of targets) {
     const length = Math.max(OUTRO_MIN, OUTRO_LEAD_IN + longest + OUTRO_TAIL);
     const cardPng = `${png}${c.id}-outro.png`;
     await renderPngs([{ html: outroCard(c.outro), file: cardPng }]);
-    renderCard([{ png: cardPng, at: 0 }], `${clips}${c.id}-outro.mp4`, length.toFixed(3));
+    // 締めのカードは動画の最後の画で、再生が終わるとこの画のまま止まる（次のチャプタへ進まない）。
+    // 白へ溶かすと、止まった画面がもやがかかったように白くなるので、フェードアウトは掛けない。
+    renderCard([{ png: cardPng, at: 0 }], `${clips}${c.id}-outro.mp4`, length.toFixed(3), { fadeOut: false });
     const list = `${clips}${c.id}.txt`;
     writeFileSync(list, [`${clips}${c.id}-body.mp4`, `${clips}${c.id}-outro.mp4`].map((f) => `file '${f}'`).join("\n"));
     execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", list, "-c", "copy", clip]);

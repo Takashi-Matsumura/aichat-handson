@@ -1,5 +1,5 @@
 /**
- * アプリの使い方動画の撮影（チャプタごと）。基本の使い方は ch1〜ch6、応用編は web（Web検索）・rag（社内資料）・usage（AI利用状況）。
+ * アプリの使い方動画の撮影（チャプタごと）。基本の使い方は ch1〜ch6、応用編は web（Web検索）・rag（社内資料）・usage（AI利用状況）・rally（ラリー）。
  *
  *   node promo/howto/shoot.mjs           # 全チャプタ
  *   node promo/howto/shoot.mjs ch3 rag   # 指定したチャプタだけ
@@ -16,6 +16,7 @@ import {
   begin,
   finish,
   input,
+  lastAnswer,
   moveAndClick,
   review,
   sendAndWait,
@@ -485,6 +486,71 @@ const SCENES = {
     rec.mark("end");
     await pause(page, 3000);
     await finish("usage", browser, rec, page);
+  },
+
+  /** 応用編 4. ラリー（AIが問いを返し、会話を往復させながら自分で答えにたどり着く）。 */
+  async rally() {
+    // gemma-3-4b でもラリーはできるが、ときどき問いを重ねたり重い問いを返したりするため、
+    // 問いの返し方が安定している gemma-4-12b で撮る（rag と同じ）。
+    const { browser, page, rec } = await begin("rally", { model: 1 });
+    await pause(page, 5000);
+    const rally = page.getByRole("button", { name: "ラリーモード" });
+    await spotlight(page, rally);
+    rec.mark("toggle-point");
+    await pause(page, 3500);
+    await unspot(page);
+    await moveAndClick(page, rally);
+    rec.mark("on");
+    await pause(page, 1200);
+    await spotlight(page, page.getByText(/ラリーモードON：/), { hover: false });
+    rec.mark("notice");
+    await pause(page, 6000);
+    await unspot(page);
+
+    // 1 往復目: 仕事の悩みを相談すると、答えを並べる代わりに問いが返ってくる。
+    await typeInto(page, "営業部の残業が多いのですが、どうすれば減らせますか？");
+    rec.mark("typed");
+    await pause(page, 1200);
+    await sendAndWait(page, rec);
+    await pause(page, 1000);
+    await spotlight(page, lastAnswer(page).getByText("ラリー", { exact: true }));
+    rec.mark("badge");
+    await pause(page, 4500);
+    await spotlight(page, lastAnswer(page), { hover: false });
+    rec.mark("question");
+    await pause(page, 6000);
+    await unspot(page);
+
+    // 2 往復目: 自分の考えを返すと、ヒントと次の問いが返ってくる。
+    await typeInto(page, "見積書や日報の作成に時間がかかっていると思います");
+    rec.mark("typed2");
+    await pause(page, 1200);
+    await sendAndWait(page, rec, { prefix: "2-" });
+    await pause(page, 1000);
+    await spotlight(page, lastAnswer(page), { hover: false });
+    rec.mark("hint");
+    await pause(page, 8000);
+    await unspot(page);
+
+    // 3 往復目: 急ぐときは答えを頼める。結論のあとに、理解を確かめる問いが返ってくる。
+    await typeInto(page, "急いでいるので、答えを教えてください");
+    rec.mark("typed3");
+    await pause(page, 1200);
+    await sendAndWait(page, rec, { prefix: "3-" });
+    await pause(page, 1000);
+    await spotlight(page, lastAnswer(page), { hover: false });
+    rec.mark("answer");
+    await pause(page, 8000);
+    await unspot(page);
+
+    await spotlight(page, rally);
+    rec.mark("off-point");
+    await pause(page, 1500);
+    await unspot(page);
+    await moveAndClick(page, rally);
+    rec.mark("off");
+    await pause(page, 3000);
+    await finish("rally", browser, rec, page);
   },
 
   /** 6. 新しく始める・確認テスト。 */
