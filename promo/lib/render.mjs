@@ -61,8 +61,9 @@ export const ENCODE = [
 ];
 /** 場面の変わり目は白を経由する（アプリの画面もカードも地が白いので、いちばん目立たない）。 */
 const FADE = 0.3;
-const edgeFade = (d) =>
-  `fade=t=in:st=0:d=${FADE}:color=white,fade=t=out:st=${(d - FADE).toFixed(3)}:d=${FADE}:color=white`;
+const edgeFade = (d, { fadeOut = true } = {}) =>
+  `fade=t=in:st=0:d=${FADE}:color=white` +
+  (fadeOut ? `,fade=t=out:st=${(d - FADE).toFixed(3)}:d=${FADE}:color=white` : "");
 
 /**
  * 目印の時刻を使って、区間ごとに時間を伸び縮みさせる関数を作る。
@@ -183,8 +184,9 @@ export function renderClip(
 /**
  * 静止画のカードを動画にする。layers は [{ png, at }]。2 枚目以降は at 秒にふわっと重なる
  * （前の画に要素を足した画を重ねれば、要素が 1 つずつ現れるように見える）。
+ * fadeOut: false にすると、終わりで白へ溶かさない（動画の最後の画として、止まったまま見せるとき）。
  */
-export function renderCard(layers, outFile, duration) {
+export function renderCard(layers, outFile, duration, { fadeOut = true } = {}) {
   const args = ["-y", "-loglevel", "error"];
   for (const l of layers)
     args.push("-loop", "1", "-framerate", String(FPS), "-t", String(duration), "-i", l.png);
@@ -193,7 +195,7 @@ export function renderCard(layers, outFile, duration) {
     chain += `;[${i + 1}:v]format=rgba,fade=t=in:st=${l.at}:d=0.5:alpha=1[l${i}]`;
     chain += `;[v${i}][l${i}]overlay=0:0:enable='gte(t,${l.at})'[v${i + 1}]`;
   });
-  chain += `;[v${layers.length - 1}]${edgeFade(duration)}[out]`;
+  chain += `;[v${layers.length - 1}]${edgeFade(duration, { fadeOut })}[out]`;
   args.push("-filter_complex", chain, "-map", "[out]", "-t", String(duration), ...ENCODE, outFile);
   execFileSync("ffmpeg", args, { stdio: "inherit" });
 }
