@@ -34,13 +34,16 @@ type Props = {
   webAvailable: boolean
   webMode: boolean
   onToggleWeb: () => void
+  // ラリーモード: AIが問いを返しながら、会話の往復で答えへ導く(lib/chat/rally.ts)
+  rallyMode: boolean
+  onToggleRally: () => void
   // 推論モードのトグルは推論に対応するモデル(gemma-4-12b)選択時のみ出す
   showThinkingToggle: boolean
   thinking: boolean
   onToggleThinking: () => void
 }
 
-// チャットの入力フォーム。コンテキスト使用量・新規チャット・RAG/Web検索/推論モードのトグル・入力欄・送信/停止ボタン。
+// チャットの入力フォーム。コンテキスト使用量・新規チャット・RAG/Web検索/ラリー/推論モードのトグル・入力欄・送信/停止ボタン。
 export function ChatComposer({
   isEmpty,
   input,
@@ -58,6 +61,8 @@ export function ChatComposer({
   webAvailable,
   webMode,
   onToggleWeb,
+  rallyMode,
+  onToggleRally,
   showThinkingToggle,
   thinking,
   onToggleThinking,
@@ -109,6 +114,13 @@ export function ChatComposer({
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           Web検索ON：検索キーワードが外部に送られます。個人情報・社外秘は入力しないでください。
+        </p>
+      )}
+      {/* ラリーモードONの間は、AIがすぐに答えを出さない理由を明示する(故障と思われないように) */}
+      {rallyMode && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs text-violet-700 dark:text-violet-400">
+          <RallyIcon size={12} />
+          ラリーモードON：AIは短く答えて問いを返します。自分の考えを返しながら答えにたどり着きましょう。
         </p>
       )}
       <div className="flex items-end gap-2">
@@ -172,6 +184,17 @@ export function ChatComposer({
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
         </button>
+        {/* ラリーモードトグル */}
+        <button
+          type="button"
+          onClick={onToggleRally}
+          title={rallyMode ? 'ラリーモード ON（AIと問いを往復しながら考える。クリックでOFF）' : 'ラリーモード OFF（クリックでON）'}
+          aria-label="ラリーモード"
+          aria-pressed={rallyMode}
+          className={`aqua flex-none w-9 h-9 flex items-center justify-center rounded-full ${rallyMode ? 'aqua-violet' : ''}`}
+        >
+          <RallyIcon size={16} />
+        </button>
         {/* 推論モードトグル（推論に対応するgemma-4-12b選択時のみ表示） */}
         {showThinkingToggle && (
           <button
@@ -229,5 +252,17 @@ export function ChatComposer({
         )}
       </div>
     </form>
+  )
+}
+
+// ラリーモードのアイコン（左右に往復する矢印）。トグルと案内文で共用する。
+export function RallyIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+      <path d="M4 8h14" />
+      <polyline points="14 4 18 8 14 12" />
+      <path d="M20 16H6" />
+      <polyline points="10 12 6 16 10 20" />
+    </svg>
   )
 }

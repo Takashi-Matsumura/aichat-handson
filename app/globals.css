@@ -104,7 +104,8 @@ body {
   .aqua-green,
   .aqua-sky,
   .aqua-amber,
-  .aqua-red {
+  .aqua-red,
+  .aqua-violet {
     --aqua-text: #ffffff;
     --aqua-gloss: rgb(255 255 255 / 0.75);
     --aqua-gloss-end: rgb(255 255 255 / 0.15);
@@ -139,6 +140,12 @@ body {
     --aqua-mid: #b91c1c;
     --aqua-bottom: #f87171;
     --aqua-border: #991b1b;
+  }
+  .aqua-violet {
+    --aqua-top: #7c3aed;
+    --aqua-mid: #6d28d9;
+    --aqua-bottom: #a78bfa;
+    --aqua-border: #5b21b6;
   }
 
   /* セグメントコントロール：くぼんだ溝の中に、選択中だけジェルが浮かぶ */
@@ -246,7 +253,7 @@ body {
   @layer components {
     /* グラファイト色は白ジェルだけに当てる。.aqua に直接書くと、後に書いたこちらが
        色付きジェル（.aqua-blue など）の色まで上書きしてグレーになってしまう。 */
-    .aqua:not(.aqua-blue):not(.aqua-green):not(.aqua-sky):not(.aqua-amber):not(.aqua-red) {
+    .aqua:not(.aqua-blue):not(.aqua-green):not(.aqua-sky):not(.aqua-amber):not(.aqua-red):not(.aqua-violet) {
       --aqua-top: #52525b;
       --aqua-mid: #3f3f46;
       --aqua-bottom: #57575f;
@@ -264,7 +271,8 @@ body {
     .aqua-green,
     .aqua-sky,
     .aqua-amber,
-    .aqua-red {
+    .aqua-red,
+    .aqua-violet {
       --aqua-gloss: rgb(255 255 255 / 0.45);
       --aqua-gloss-end: rgb(255 255 255 / 0.1);
     }
