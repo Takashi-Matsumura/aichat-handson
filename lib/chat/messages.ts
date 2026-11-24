@@ -10,6 +10,8 @@ export type Message = {
   role: 'user' | 'assistant'
   content: string
   thinkingEnabled?: boolean
+  // ラリーモード(lib/chat/rally.ts)で生成した回答か
+  rallyEnabled?: boolean
   rawThinking?: string
   thinking?: string
   thinkingDone?: boolean

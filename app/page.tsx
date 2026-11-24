@@ -44,6 +44,7 @@ export default function Home() {
   const [thinking, setThinking] = useState(false)
   const [ragMode, setRagMode] = useState(false)
   const [webMode, setWebMode] = useState(false)
+  const [rallyMode, setRallyMode] = useState(false)
   // SearXNG が設定済み・稼働中のときのみtrue
   const [webAvailable, setWebAvailable] = useState(false)
   // 知識ソースが登録されている(chunkCount > 0)、かつ埋め込みサーバーが起動しているときのみtrue
@@ -153,6 +154,7 @@ export default function Home() {
       setThinking(localStorage.getItem('thinking-mode') === 'true')
       setRagMode(localStorage.getItem('rag-mode') === 'true')
       setWebMode(localStorage.getItem('web-mode') === 'true')
+      setRallyMode(localStorage.getItem('rally-mode') === 'true')
       const saved = localStorage.getItem('selected-model')
       if (saved === '2') setSelectedModel(2)
       setPanelMounted(true)
@@ -279,6 +281,13 @@ export default function Home() {
     })
   }
 
+  function toggleRally() {
+    setRallyMode((prev) => {
+      localStorage.setItem('rally-mode', String(!prev))
+      return !prev
+    })
+  }
+
   async function handleTokenToggle(index: number, content: string, hasTokens: boolean) {
     if (hasTokens) {
       setMessages(prev => prev.map((m, j) =>
@@ -325,6 +334,7 @@ export default function Home() {
     modelIdx: 1 | 2,
     useRag: boolean,
     useWeb: boolean,
+    useRally: boolean,
   ) {
     const update = (updater: (msg: Message) => Message) =>
       setMessages(prev => {
@@ -337,7 +347,7 @@ export default function Home() {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx, rag: useRag, web: useWeb }),
+      body: JSON.stringify({ messages: historyMessages, thinking: useThink, modelIndex: modelIdx, rag: useRag, web: useWeb, rally: useRally }),
       signal: abortControllerRef.current.signal,
     })
 
@@ -401,10 +411,11 @@ export default function Home() {
     const useThink = thinking
     const useRag = ragMode && ragAvailable
     const useWeb = webMode && webAvailable
+    const useRally = rallyMode
     const userMessage: Message = { role: 'user', content: text }
     const history = [...messages, userMessage]
     const targetIndex = history.length
-    setMessages([...history, { role: 'assistant', content: '', thinkingEnabled: useThink, ragEnabled: useRag, webEnabled: useWeb }])
+    setMessages([...history, { role: 'assistant', content: '', thinkingEnabled: useThink, ragEnabled: useRag, webEnabled: useWeb, rallyEnabled: useRally }])
     setInput('')
     setLoading(true)
     setStreamingIndex(targetIndex)
@@ -417,6 +428,7 @@ export default function Home() {
         selectedModel,
         useRag,
         useWeb,
+        useRally,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -451,6 +463,7 @@ export default function Home() {
     const useThink = thinking
     const useRag = ragMode && ragAvailable
     const useWeb = webMode && webAvailable
+    const useRally = rallyMode
     const prevVersions = [...(msg.versions ?? []), msg.content]
 
     setMessages(prev => prev.map((m, j) =>
@@ -473,6 +486,7 @@ export default function Home() {
         webEnabled: useWeb,
         web: undefined,
         showWebSources: undefined,
+        rallyEnabled: useRally,
       }
     ))
     setLoading(true)
@@ -486,6 +500,7 @@ export default function Home() {
         selectedModel,
         useRag,
         useWeb,
+        useRally,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -604,6 +619,8 @@ export default function Home() {
             webAvailable={webAvailable}
             webMode={webMode}
             onToggleWeb={toggleWeb}
+            rallyMode={rallyMode}
+            onToggleRally={toggleRally}
             showThinkingToggle={selectedModel === 1}
             thinking={thinking}
             onToggleThinking={toggleThinking}

@@ -14,6 +14,7 @@ import { MAX_MESSAGES, MAX_TOTAL_CHARS, parseMessages } from '@/lib/chat/limits'
 import { readJsonObject } from '@/lib/http/json'
 import { ANALYTICS_MODEL_NAMES } from '@/lib/llama/models'
 import { THINKING_SYSTEM_PROMPT, prependThinkPrefill, withThinkPrefill } from '@/lib/llm/think'
+import { RALLY_SYSTEM_PROMPT, resolveMaxTokens } from '@/lib/chat/rally'
 
 // 1リクエストあたりの生成トークン数の上限。モデルが reasoning_content を延々と吐き続けるなど
 // 万一ストップトークンに到達しない場合でも、応答時間を必ず有限にするための安全弁。
@@ -52,6 +53,8 @@ export async function POST(request: NextRequest) {
     )
   }
   const { thinking, modelIndex, rag, web } = payload!
+  // 真偽値以外(文字列の "false" など)は OFF として扱う
+  const rally = payload!.rally === true
   const n = modelIndex === 2 ? 2 : 1
   // フロント側の制御をすり抜けて直接APIが叩かれた場合の保険。
   if (n === 1 && !isModel1Enabled()) {
@@ -91,11 +94,12 @@ export async function POST(request: NextRequest) {
   // systemメッセージは必ず1個に連結する。Gemmaのチャットテンプレートにはsystemロールが
   // 無く、llama.cpp側で先頭userメッセージへ畳み込まれる。system を複数個並べると
   // テンプレート実装によっては2個目以降が無視される等、環境依存の事故になりうるため。
-  // 順序は「振る舞いの指示(思考プロセス) → データ(検索した資料・検索結果)」。
+  // 順序は「振る舞いの指示(思考プロセス・ラリーモード) → データ(検索した資料・検索結果)」。
   // 検索結果が0件のときはcontextを足さない。「資料はありませんでした」と書くと
   // モデルがそれに引きずられて回答自体を拒否しがちになるため、素のLLMとして答えさせる。
   const systemParts: string[] = []
   if (thinking) systemParts.push(THINKING_SYSTEM_PROMPT)
+  if (rally) systemParts.push(RALLY_SYSTEM_PROMPT)
   if (ragContext) systemParts.push(ragContext)
   if (webContext) systemParts.push(webContext)
   const baseMessages = systemParts.length > 0
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
         messages: allMessages,
         stream: true,
         stream_options: { include_usage: true },
-        max_tokens: MAX_TOKENS,
+        max_tokens: resolveMaxTokens(MAX_TOKENS, { rally, thinking: Boolean(thinking) }),
         // 内蔵の思考は英語で書かれるため、推論モードでも常に無効にする(lib/llm/think.ts)
         ...NO_BUILTIN_REASONING,
       }),

@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex'
 import SourcesPanel from '@/app/components/SourcesPanel'
 import WebSourcesPanel from '@/app/components/WebSourcesPanel'
 import { displayedContent, type Message } from '@/lib/chat/messages'
+import { RallyIcon } from '@/app/components/chat/ChatComposer'
 
 // LLMの出力(回答・思考過程)を表示するときのMarkdown設定。画像は読み込まず代替テキストだけ表示する。
 // 画像を表示すると、RAG資料や貼り付けたテキストに仕込まれた指示でモデルに
@@ -69,6 +70,13 @@ export function ChatMessageItem({
         </div>
       )}
       <div className="max-w-[90%] sm:max-w-[75%] flex flex-col gap-1">
+        {/* ラリーモードで生成した回答の目印 */}
+        {msg.role === 'assistant' && msg.rallyEnabled && (
+          <span className="self-start flex items-center gap-1 rounded-full bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+            <RallyIcon size={11} />
+            ラリー
+          </span>
+        )}
         {/* 思考プロセス表示 */}
         {msg.role === 'assistant' && (msg.thinking !== undefined || (msg.thinkingEnabled && !msg.thinkingDone && msg.content === '')) && (
           <div className="rounded-xl border border-amber-200 dark:border-amber-800 overflow-hidden text-sm">
